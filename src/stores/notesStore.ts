@@ -13,6 +13,7 @@ interface NotesStore {
   setLoading: (loading: boolean) => void;
   updateNote: (id: string, updates: Partial<Note>) => void;
   addNote: (note: Note) => void;
+  deleteNote: (id: string) => void;
 }
 
 export const useNotesStore = create<NotesStore>((set) => ({
@@ -34,5 +35,10 @@ export const useNotesStore = create<NotesStore>((set) => ({
 
   addNote: (note) => set((state) => ({
     notes: [note, ...state.notes]
+  })),
+
+  deleteNote: (id) => set((state) => ({
+    notes: state.notes.filter((n) => n.id !== id),
+    activeNoteId: state.activeNoteId === id ? null : state.activeNoteId,
   })),
 }));

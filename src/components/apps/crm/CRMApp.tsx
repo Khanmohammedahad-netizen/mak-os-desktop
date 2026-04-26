@@ -15,6 +15,7 @@ export const CRMApp = () => {
   const [activeTab, setActiveTab] = useState<'contacts' | 'pipeline'>('contacts');
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
   const { activeContactId, setActiveContactId } = useCRMStore();
 
   return (
@@ -81,7 +82,13 @@ export const CRMApp = () => {
           {['All', 'New', 'Contacted', 'Proposal'].map((filter) => (
             <button
               key={filter}
-              className="px-3 py-1 text-[11px] font-medium rounded-full bg-white/5 border border-gold/5 text-text-secondary hover:text-gold hover:border-gold/30 transition-all"
+              onClick={() => setStatusFilter(filter)}
+              className={cn(
+                "px-3 py-1 text-[11px] font-medium rounded-full border transition-all",
+                statusFilter === filter
+                  ? "bg-gold/15 text-gold border-gold/30"
+                  : "bg-white/5 border-gold/5 text-text-secondary hover:text-gold hover:border-gold/30"
+              )}
             >
               {filter}
             </button>
@@ -92,7 +99,7 @@ export const CRMApp = () => {
       {/* Content Area */}
       <div className="flex-1 overflow-hidden relative">
         {activeTab === 'contacts' ? (
-          <ContactsTable searchQuery={searchQuery} />
+          <ContactsTable searchQuery={searchQuery} statusFilter={statusFilter} />
         ) : (
           <LeadPipeline />
         )}

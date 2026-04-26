@@ -10,7 +10,7 @@ import { useNotesStore } from '@/stores/notesStore';
 import { Button } from '@/components/shared/Button';
 
 export const NoteEditor = () => {
-  const { notes, activeNoteId, updateNote } = useNotesStore();
+  const { notes, activeNoteId, updateNote, deleteNote } = useNotesStore();
   const activeNote = notes.find(n => n.id === activeNoteId);
   
   const [title, setTitle] = useState('');
@@ -32,6 +32,31 @@ export const NoteEditor = () => {
       setLastSaved(null);
     }
   }, [activeNoteId, activeNote]);
+
+  const handlePinToggle = async () => {
+    if (!activeNoteId || !activeNote) return;
+    const newPinned = !activeNote.pinned;
+    updateNote(activeNoteId, { pinned: newPinned });
+    try {
+      await fetch(`/api/notes/${activeNoteId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pinned: newPinned }),
+      });
+    } catch {
+      updateNote(activeNoteId, { pinned: activeNote.pinned });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!activeNoteId) return;
+    deleteNote(activeNoteId);
+    try {
+      await fetch(`/api/notes/${activeNoteId}`, { method: 'DELETE' });
+    } catch (e) {
+      console.error('Failed to delete note:', e);
+    }
+  };
 
   // Auto-save logic
   const triggerAutoSave = (newTitle: string, newContent: string) => {
@@ -111,10 +136,10 @@ export const NoteEditor = () => {
           <Button variant="ghost" size="icon" className="h-8 w-8">
             <Share size={14} />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePinToggle}>
             {activeNote?.pinned ? <PinOff size={14} className="text-gold" /> : <Pin size={14} />}
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-os-red hover:bg-os-red/10">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-os-red hover:bg-os-red/10" onClick={handleDelete}>
             <Trash2 size={14} />
           </Button>
         </div>

@@ -8,9 +8,10 @@ import { Contact } from '@/types';
 
 interface ContactsTableProps {
   searchQuery: string;
+  statusFilter?: string;
 }
 
-export const ContactsTable = ({ searchQuery }: ContactsTableProps) => {
+export const ContactsTable = ({ searchQuery, statusFilter = 'All' }: ContactsTableProps) => {
   const { contacts, setContacts, setLoading, loading, setActiveContactId } = useCRMStore();
   const [sortField, setSortField] = useState<keyof Contact>('updated_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -19,7 +20,11 @@ export const ContactsTable = ({ searchQuery }: ContactsTableProps) => {
     const fetchContacts = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`/api/contacts?search=${searchQuery}`);
+        const params = new URLSearchParams({ search: searchQuery });
+        if (statusFilter !== 'All') {
+          params.set('status', statusFilter === 'Proposal' ? 'Proposal Sent' : statusFilter);
+        }
+        const response = await fetch(`/api/contacts?${params.toString()}`);
         const data = await response.json();
         if (Array.isArray(data)) {
           setContacts(data);
@@ -32,7 +37,7 @@ export const ContactsTable = ({ searchQuery }: ContactsTableProps) => {
     };
 
     fetchContacts();
-  }, [searchQuery, setContacts, setLoading]);
+  }, [searchQuery, statusFilter, setContacts, setLoading]);
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {

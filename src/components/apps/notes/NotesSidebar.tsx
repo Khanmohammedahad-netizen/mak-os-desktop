@@ -9,7 +9,27 @@ import { cn } from '@/lib/utils';
 import { useNotesStore } from '@/stores/notesStore';
 
 export const NotesSidebar = () => {
-  const { activeFolder, setActiveFolder, notes } = useNotesStore();
+  const { activeFolder, setActiveFolder, notes, addNote, setActiveNoteId } = useNotesStore();
+
+  const handleNewNote = async () => {
+    const folder = activeFolder === 'all' || activeFolder === 'pinned' || activeFolder === 'trash'
+      ? 'Notes'
+      : activeFolder;
+    try {
+      const response = await fetch('/api/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'Untitled Note', content: '', folder, pinned: false }),
+      });
+      if (!response.ok) throw new Error('Failed to create note');
+      const note = await response.json();
+      addNote(note);
+      setActiveNoteId(note.id);
+      if (activeFolder !== 'all') setActiveFolder('all');
+    } catch (e) {
+      console.error('Failed to create note:', e);
+    }
+  };
 
   const folders = [
     { id: 'all', label: 'All Notes', icon: FileText, count: notes.length },
@@ -83,7 +103,8 @@ export const NotesSidebar = () => {
 
       {/* New Note Button (Bottom of Sidebar) */}
       <div className="mt-auto pt-4">
-        <button 
+        <button
+          onClick={handleNewNote}
           className="w-full flex items-center justify-center space-x-2 py-2.5 rounded-xl border border-gold/20 bg-gold/5 text-gold hover:bg-gold/10 transition-all active:scale-95 text-sm font-medium"
         >
           <Plus size={16} />

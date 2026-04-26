@@ -37,7 +37,7 @@ export const AddContactForm = ({ onClose, editContact }: AddContactFormProps) =>
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<ContactFormValues>({
-    resolver: zodResolver(contactSchema) as Parameters<typeof useForm<ContactFormValues>>[0]['resolver'],
+    resolver: zodResolver(contactSchema) as any,
     defaultValues: editContact || {
       name: '',
       email: '',
