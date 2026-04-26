@@ -91,10 +91,10 @@ export const ContactDetail = ({ isOpen, onClose, contactId }: ContactDetailProps
               <div className="flex-1 overflow-auto p-6 space-y-8">
                 {/* Contact Info Grid */}
                 <div className="grid grid-cols-1 gap-4">
-                  <InfoItem icon={Mail} label="Email" value={contact.email} isLink />
-                  <InfoItem icon={Phone} label="Phone" value={contact.phone} />
-                  <InfoItem icon={Globe} label="Website" value={contact.website} isLink />
-                  <InfoItem icon={MapPin} label="Location" value={contact.city ? `${contact.city}, ${contact.country}` : contact.country} />
+                  <InfoItem icon={Mail} label="Email" value={contact.email ?? undefined} isLink />
+                  <InfoItem icon={Phone} label="Phone" value={contact.phone ?? undefined} />
+                  <InfoItem icon={Globe} label="Website" value={contact.website ?? undefined} isLink />
+                  <InfoItem icon={MapPin} label="Location" value={contact.city ? `${contact.city}, ${contact.country ?? ''}` : contact.country ?? undefined} />
                 </div>
 
                 {/* Status & Value */}

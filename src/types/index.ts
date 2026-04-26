@@ -3,34 +3,34 @@ export type EntityType = 'contact' | 'deal' | 'note' | 'task';
 export interface Contact {
   id: string;
   name: string;
-  email?: string;
-  phone?: string;
-  company?: string;
-  website?: string;
+  email?: string | null;
+  phone?: string | null;
+  company?: string | null;
+  website?: string | null;
   source: string;
   status: string;
-  category?: string;
-  country?: string;
-  city?: string;
-  notes?: string;
-  last_contacted_at?: string;
-  next_follow_up_at?: string;
-  deal_value?: number;
-  tags?: string[];
+  category?: string | null;
+  country?: string | null;
+  city?: string | null;
+  notes?: string | null;
+  last_contacted_at?: string | null;
+  next_follow_up_at?: string | null;
+  deal_value?: number | null;
+  tags?: string[] | null;
   created_at: string;
   updated_at: string;
 }
 
 export interface Deal {
   id: string;
-  contact_id?: string;
+  contact_id?: string | null;
   title: string;
-  value: number;
+  value: number | null;
   currency: string;
   stage: string;
   probability: number;
-  expected_close_date?: string;
-  notes?: string;
+  expected_close_date?: string | null;
+  notes?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -38,10 +38,10 @@ export interface Deal {
 export interface Note {
   id: string;
   title: string;
-  content?: string;
+  content?: string | null;
   folder: string;
   pinned: boolean;
-  tags?: string[];
+  tags?: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -49,12 +49,12 @@ export interface Note {
 export interface Task {
   id: string;
   title: string;
-  description?: string;
+  description?: string | null;
   status: 'todo' | 'in-progress' | 'done';
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  due_date?: string;
-  linked_contact_id?: string;
-  linked_deal_id?: string;
+  due_date?: string | null;
+  linked_contact_id?: string | null;
+  linked_deal_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -64,6 +64,6 @@ export interface ActivityLog {
   entity_type: EntityType;
   entity_id: string;
   action: string;
-  details?: Record<string, unknown>;
+  details?: Record<string, unknown> | null;
   created_at: string;
 }

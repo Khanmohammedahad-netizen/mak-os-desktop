@@ -72,8 +72,8 @@ export const AnalyticsApp = () => {
     load();
   }, [setContacts, setDeals, setTasks]);
 
-  const totalPipelineValue = deals.reduce((s, d) => s + d.value, 0);
-  const weightedValue = deals.reduce((s, d) => s + d.value * (d.probability / 100), 0);
+  const totalPipelineValue = deals.reduce((s, d) => s + (d.value ?? 0), 0);
+  const weightedValue = deals.reduce((s, d) => s + (d.value ?? 0) * (d.probability / 100), 0);
   const wonDeals = deals.filter(d => d.stage === 'Closed Won').length;
   const conversionRate = deals.length > 0 ? (wonDeals / deals.length) * 100 : 0;
   const completedTasks = tasks.filter(t => t.status === 'done').length;
@@ -84,7 +84,7 @@ export const AnalyticsApp = () => {
   deals.forEach((d) => {
     if (!stageGroups[d.stage]) stageGroups[d.stage] = { count: 0, value: 0 };
     stageGroups[d.stage].count++;
-    stageGroups[d.stage].value += d.value;
+    stageGroups[d.stage].value += (d.value ?? 0);
   });
   const pipelineData = Object.entries(stageGroups).map(([name, { count, value }]) => ({
     name, count, value

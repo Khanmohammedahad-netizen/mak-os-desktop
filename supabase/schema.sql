@@ -1,95 +1,90 @@
--- MAK OS Desktop — Supabase Schema
--- Run this in the Supabase SQL editor to create all required tables.
-
-create extension if not exists "uuid-ossp";
+-- MAK OS Desktop — Supabase Schema (Phase 2)
+-- Run this in the Supabase SQL editor.
+-- gen_random_uuid() is built into Postgres 13+ — no extension needed.
 
 -- ─── Contacts ────────────────────────────────────────────────────────────────
-create table if not exists mak_contacts (
-  id                  uuid primary key default uuid_generate_v4(),
-  name                text not null,
-  email               text,
-  phone               text,
-  company             text,
-  website             text,
-  source              text not null default 'Manual',
-  status              text not null default 'New',
-  category            text,
-  country             text,
-  city                text,
-  notes               text,
-  last_contacted_at   timestamptz,
-  next_follow_up_at   timestamptz,
-  deal_value          numeric default 0,
-  tags                text[],
-  created_at          timestamptz not null default now(),
-  updated_at          timestamptz not null default now()
+CREATE TABLE IF NOT EXISTS mak_contacts (
+  id                  UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name                TEXT NOT NULL,
+  email               TEXT,
+  phone               TEXT,
+  company             TEXT,
+  website             TEXT,
+  source              TEXT DEFAULT 'manual',
+  status              TEXT DEFAULT 'new',
+  category            TEXT,
+  country             TEXT,
+  city                TEXT,
+  notes               TEXT,
+  last_contacted_at   TIMESTAMPTZ,
+  next_follow_up_at   TIMESTAMPTZ,
+  deal_value          NUMERIC(12,2),
+  tags                TEXT[],
+  created_at          TIMESTAMPTZ DEFAULT NOW(),
+  updated_at          TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ─── Deals ───────────────────────────────────────────────────────────────────
-create table if not exists mak_deals (
-  id                  uuid primary key default uuid_generate_v4(),
-  contact_id          uuid references mak_contacts(id) on delete set null,
-  title               text not null,
-  value               numeric not null default 0,
-  currency            text not null default 'USD',
-  stage               text not null default 'Lead',
-  probability         integer not null default 10
-                        check (probability >= 0 and probability <= 100),
-  expected_close_date date,
-  notes               text,
-  created_at          timestamptz not null default now(),
-  updated_at          timestamptz not null default now()
+CREATE TABLE IF NOT EXISTS mak_deals (
+  id                  UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  contact_id          UUID REFERENCES mak_contacts(id) ON DELETE SET NULL,
+  title               TEXT NOT NULL,
+  value               NUMERIC(12,2),
+  currency            TEXT DEFAULT 'USD',
+  stage               TEXT DEFAULT 'lead',
+  probability         INTEGER DEFAULT 10,
+  expected_close_date DATE,
+  notes               TEXT,
+  created_at          TIMESTAMPTZ DEFAULT NOW(),
+  updated_at          TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ─── Notes ───────────────────────────────────────────────────────────────────
-create table if not exists mak_notes (
-  id          uuid primary key default uuid_generate_v4(),
-  title       text not null default 'Untitled Note',
-  content     text,
-  folder      text not null default 'Notes',
-  pinned      boolean not null default false,
-  tags        text[],
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now()
+CREATE TABLE IF NOT EXISTS mak_notes (
+  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title       TEXT NOT NULL,
+  content     TEXT,
+  folder      TEXT DEFAULT 'general',
+  pinned      BOOLEAN DEFAULT FALSE,
+  tags        TEXT[],
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ─── Tasks ───────────────────────────────────────────────────────────────────
-create table if not exists mak_tasks (
-  id                  uuid primary key default uuid_generate_v4(),
-  title               text not null,
-  description         text,
-  status              text not null default 'todo'
-                        check (status in ('todo', 'in-progress', 'done')),
-  priority            text not null default 'medium'
-                        check (priority in ('low', 'medium', 'high', 'urgent')),
-  due_date            timestamptz,
-  linked_contact_id   uuid references mak_contacts(id) on delete set null,
-  linked_deal_id      uuid references mak_deals(id) on delete set null,
-  created_at          timestamptz not null default now(),
-  updated_at          timestamptz not null default now()
+CREATE TABLE IF NOT EXISTS mak_tasks (
+  id                  UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title               TEXT NOT NULL,
+  description         TEXT,
+  status              TEXT DEFAULT 'todo',
+  priority            TEXT DEFAULT 'medium',
+  due_date            DATE,
+  linked_contact_id   UUID REFERENCES mak_contacts(id) ON DELETE SET NULL,
+  linked_deal_id      UUID REFERENCES mak_deals(id) ON DELETE SET NULL,
+  created_at          TIMESTAMPTZ DEFAULT NOW(),
+  updated_at          TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ─── Activity Log ─────────────────────────────────────────────────────────────
-create table if not exists mak_activity_log (
-  id           uuid primary key default uuid_generate_v4(),
-  entity_type  text not null,
-  entity_id    uuid not null,
-  action       text not null,
-  details      jsonb,
-  created_at   timestamptz not null default now()
+CREATE TABLE IF NOT EXISTS mak_activity_log (
+  id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  entity_type  TEXT NOT NULL,
+  entity_id    UUID NOT NULL,
+  action       TEXT NOT NULL,
+  details      JSONB,
+  created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ─── Row Level Security ───────────────────────────────────────────────────────
--- Enable RLS on all tables
-alter table mak_contacts     enable row level security;
-alter table mak_deals        enable row level security;
-alter table mak_notes        enable row level security;
-alter table mak_tasks        enable row level security;
-alter table mak_activity_log enable row level security;
+ALTER TABLE mak_contacts     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE mak_deals        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE mak_notes        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE mak_tasks        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE mak_activity_log ENABLE ROW LEVEL SECURITY;
 
 -- Permissive policies for anon key — lock these down with auth in production
-create policy "Allow all" on mak_contacts     for all using (true) with check (true);
-create policy "Allow all" on mak_deals        for all using (true) with check (true);
-create policy "Allow all" on mak_notes        for all using (true) with check (true);
-create policy "Allow all" on mak_tasks        for all using (true) with check (true);
-create policy "Allow all" on mak_activity_log for all using (true) with check (true);
+CREATE POLICY "Allow all on mak_contacts"     ON mak_contacts     FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all on mak_deals"        ON mak_deals        FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all on mak_notes"        ON mak_notes        FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all on mak_tasks"        ON mak_tasks        FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all on mak_activity_log" ON mak_activity_log FOR ALL USING (true) WITH CHECK (true);

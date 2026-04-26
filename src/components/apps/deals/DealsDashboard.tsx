@@ -11,8 +11,8 @@ import { useDealsStore } from '@/stores/dealsStore';
 export const DealsDashboard = () => {
   const { deals } = useDealsStore();
 
-  const totalValue = deals.reduce((sum, d) => sum + d.value, 0);
-  const weightedValue = deals.reduce((sum, d) => sum + (d.value * (d.probability / 100)), 0);
+  const totalValue = deals.reduce((sum, d) => sum + (d.value ?? 0), 0);
+  const weightedValue = deals.reduce((sum, d) => sum + ((d.value ?? 0) * (d.probability / 100)), 0);
   const wonDeals = deals.filter(d => d.stage === 'Won');
   const conversionRate = deals.length > 0 ? (wonDeals.length / deals.length) * 100 : 0;
   const avgDealSize = deals.length > 0 ? totalValue / deals.length : 0;

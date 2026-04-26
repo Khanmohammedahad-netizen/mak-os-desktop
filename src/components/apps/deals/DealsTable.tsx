@@ -24,7 +24,7 @@ export const DealsTable = () => {
     }
   };
 
-  const isAtRisk = (date?: string) => {
+  const isAtRisk = (date?: string | null) => {
     if (!date) return false;
     return new Date(date) < new Date();
   };
@@ -69,7 +69,7 @@ export const DealsTable = () => {
                 </div>
               </td>
               <td className="py-5 px-6">
-                <span className="text-gold font-medium">${deal.value.toLocaleString()}</span>
+                <span className="text-gold font-medium">${(deal.value ?? 0).toLocaleString()}</span>
               </td>
               <td className="py-5 px-6">
                 <div className="flex items-center space-x-2">
