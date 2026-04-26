@@ -33,7 +33,7 @@ const APP_CONFIGS: Record<string, { width: number; height: number }> = {
   crm:       { width: 1100, height: 700 },
   deals:     { width: 1000, height: 680 },
   analytics: { width: 1000, height: 680 },
-  notes:     { width: 960,  height: 650 },
+  notes:     { width: 900,  height: 600 },
   calendar:  { width: 900,  height: 640 },
 };
 

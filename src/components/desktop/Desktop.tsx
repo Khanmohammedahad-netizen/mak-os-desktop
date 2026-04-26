@@ -14,7 +14,7 @@ import { ToastContainer } from '@/components/shared/Toast';
 const DESKTOP_APPS = [
   { id: 'crm',       title: 'CRM — MAK OS', icon: Users },
   { id: 'deals',     title: 'Deals',        icon: Handshake },
-  { id: 'notes',     title: 'Notes',        icon: FileText },
+  { id: 'notes',     title: 'Notes — MAK OS', icon: FileText },
   { id: 'tasks',     title: 'Tasks',        icon: CheckSquare },
   { id: 'analytics', title: 'Analytics',    icon: BarChart2 },
   { id: 'v1',        title: 'MAK OS v1',    icon: Cpu },

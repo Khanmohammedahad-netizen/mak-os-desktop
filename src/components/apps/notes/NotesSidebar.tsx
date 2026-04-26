@@ -1,113 +1,81 @@
 "use client";
 
 import React from 'react';
-import { 
-  FileText, Star, Folder, Trash2, 
-  ChevronRight, Plus, FolderPlus 
-} from 'lucide-react';
+import { FileText, Folder, Users, Lightbulb, BookOpen, User, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNotesStore } from '@/stores/notesStore';
 
-export const NotesSidebar = () => {
-  const { activeFolder, setActiveFolder, notes, addNote, setActiveNoteId } = useNotesStore();
+const FIXED_FOLDERS = [
+  { id: 'all',      label: 'All Notes', icon: FileText },
+  { id: 'General',  label: 'General',   icon: Folder },
+  { id: 'Clients',  label: 'Clients',   icon: Users },
+  { id: 'Ideas',    label: 'Ideas',     icon: Lightbulb },
+  { id: 'Meetings', label: 'Meetings',  icon: BookOpen },
+  { id: 'Personal', label: 'Personal',  icon: User },
+];
 
-  const handleNewNote = async () => {
-    const folder = activeFolder === 'all' || activeFolder === 'pinned' || activeFolder === 'trash'
-      ? 'Notes'
-      : activeFolder;
-    try {
-      const response = await fetch('/api/notes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: 'Untitled Note', content: '', folder, pinned: false }),
-      });
-      if (!response.ok) throw new Error('Failed to create note');
-      const note = await response.json();
-      addNote(note);
-      setActiveNoteId(note.id);
-      if (activeFolder !== 'all') setActiveFolder('all');
-    } catch (e) {
-      console.error('Failed to create note:', e);
-    }
+interface NotesSidebarProps {
+  onNewNote: () => void;
+}
+
+export const NotesSidebar = ({ onNewNote }: NotesSidebarProps) => {
+  const { notes, activeFolder, setActiveFolder } = useNotesStore();
+
+  const getCount = (id: string) => {
+    if (id === 'all') return notes.length;
+    return notes.filter((n) => n.folder === id).length;
   };
 
-  const folders = [
-    { id: 'all', label: 'All Notes', icon: FileText, count: notes.length },
-    { id: 'pinned', label: 'Pinned', icon: Star, count: notes.filter(n => n.pinned).length },
-    { id: 'trash', label: 'Trash', icon: Trash2, count: 0 },
-  ];
-
-  // Unique folders from notes
-  const customFolders = Array.from(new Set(notes.map(n => n.folder).filter(Boolean)));
-
   return (
-    <div className="w-64 border-r border-gold/10 bg-black/20 flex flex-col p-4 space-y-8">
-      {/* Smart Folders */}
-      <div className="space-y-1">
-        <h3 className="px-3 text-[10px] font-bold uppercase tracking-widest text-text-secondary mb-2">MAK OS Notes</h3>
-        {folders.map((folder) => (
-          <button
-            key={folder.id}
-            onClick={() => setActiveFolder(folder.id)}
-            className={cn(
-              "w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-sm transition-all group",
-              activeFolder === folder.id 
-                ? "bg-gold/10 text-gold shadow-[inset_0_0_10px_rgba(201,168,76,0.05)]" 
-                : "text-text-secondary hover:bg-white/5 hover:text-text-primary"
-            )}
-          >
-            <div className="flex items-center space-x-3">
-              <folder.icon size={16} className={cn(
-                activeFolder === folder.id ? "text-gold" : "text-text-secondary group-hover:text-text-primary"
-              )} />
-              <span className="font-medium">{folder.label}</span>
-            </div>
-            <span className="text-[10px] opacity-40">{folder.count}</span>
-          </button>
-        ))}
+    <div className="w-[200px] flex-shrink-0 border-r border-gold/10 bg-black/25 flex flex-col py-4">
+      <div className="px-4 mb-3">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary/40">Notes</p>
       </div>
 
-      {/* Custom Folders */}
-      <div className="space-y-1">
-        <div className="px-3 flex items-center justify-between mb-2">
-          <h3 className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Folders</h3>
-          <button className="text-text-secondary hover:text-gold transition-colors">
-            <FolderPlus size={14} />
-          </button>
-        </div>
-        
-        {customFolders.map((folderName: any) => (
-          <button
-            key={folderName}
-            onClick={() => setActiveFolder(folderName)}
-            className={cn(
-              "w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-sm transition-all group",
-              activeFolder === folderName 
-                ? "bg-gold/10 text-gold" 
-                : "text-text-secondary hover:bg-white/5 hover:text-text-primary"
-            )}
-          >
-            <div className="flex items-center space-x-3">
-              <Folder size={16} className={cn(
-                activeFolder === folderName ? "text-gold" : "text-text-secondary group-hover:text-text-primary"
-              )} />
-              <span className="font-medium">{folderName}</span>
-            </div>
-          </button>
-        ))}
-
-        {customFolders.length === 0 && (
-          <p className="px-3 text-[11px] italic text-text-secondary/40 py-2">No custom folders</p>
-        )}
+      <div className="flex-1 overflow-auto space-y-0.5 px-2">
+        {FIXED_FOLDERS.map((folder) => {
+          const isActive = activeFolder === folder.id;
+          const count = getCount(folder.id);
+          return (
+            <button
+              key={folder.id}
+              onClick={() => setActiveFolder(folder.id)}
+              className={cn(
+                'relative w-full flex items-center justify-between pl-3 pr-2 py-1.5 rounded-md text-[13px] transition-colors duration-100',
+                isActive
+                  ? 'text-gold bg-[#1A1A1D]'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-[#1A1A1D]'
+              )}
+            >
+              {isActive && (
+                <div className="absolute left-0 top-1 bottom-1 w-[3px] rounded-r bg-gold" />
+              )}
+              <div className="flex items-center space-x-2.5 min-w-0">
+                <folder.icon
+                  size={14}
+                  className={cn('flex-shrink-0', isActive ? 'text-gold' : 'text-text-secondary')}
+                />
+                <span className="font-medium truncate">{folder.label}</span>
+              </div>
+              {count > 0 && (
+                <span className={cn(
+                  'text-[10px] tabular-nums flex-shrink-0 ml-1',
+                  isActive ? 'text-gold/70' : 'text-text-secondary/35'
+                )}>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      {/* New Note Button (Bottom of Sidebar) */}
-      <div className="mt-auto pt-4">
+      <div className="px-2 pt-3 mt-2 border-t border-gold/5">
         <button
-          onClick={handleNewNote}
-          className="w-full flex items-center justify-center space-x-2 py-2.5 rounded-xl border border-gold/20 bg-gold/5 text-gold hover:bg-gold/10 transition-all active:scale-95 text-sm font-medium"
+          onClick={onNewNote}
+          className="w-full flex items-center justify-center space-x-2 py-2 rounded-lg border border-dashed border-gold/25 text-gold/70 hover:text-gold hover:border-gold/40 hover:bg-gold/5 transition-all text-[12px] font-medium"
         >
-          <Plus size={16} />
+          <Plus size={13} />
           <span>New Note</span>
         </button>
       </div>
