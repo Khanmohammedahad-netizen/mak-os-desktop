@@ -29,6 +29,14 @@ interface WindowStore {
 const DEFAULT_WIDTH = 800;
 const DEFAULT_HEIGHT = 600;
 
+const APP_CONFIGS: Record<string, { width: number; height: number }> = {
+  crm:       { width: 1100, height: 700 },
+  deals:     { width: 1000, height: 680 },
+  analytics: { width: 1000, height: 680 },
+  notes:     { width: 960,  height: 650 },
+  calendar:  { width: 900,  height: 640 },
+};
+
 export const useWindowStore = create<WindowStore>((set) => ({
   windows: [],
   activeWindowId: null,
@@ -55,6 +63,15 @@ export const useWindowStore = create<WindowStore>((set) => ({
       };
     }
 
+    const cfg = APP_CONFIGS[id];
+    const w = cfg?.width ?? DEFAULT_WIDTH;
+    const h = cfg?.height ?? DEFAULT_HEIGHT;
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 768;
+    const offset = state.windows.length * 24;
+    const x = Math.max(40, Math.round((vw - w) / 2) + offset);
+    const y = Math.max(44, Math.round((vh - h) / 2) + offset);
+
     const newWindow: WindowState = {
       id,
       title,
@@ -62,12 +79,9 @@ export const useWindowStore = create<WindowStore>((set) => ({
       isOpen: true,
       isMinimized: false,
       isMaximized: false,
-      position: { 
-        x: 100 + (state.windows.length * 40), 
-        y: 100 + (state.windows.length * 40) 
-      },
-      size: { width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT },
-      zIndex: state.maxZIndex + 1
+      position: { x, y },
+      size: { width: w, height: h },
+      zIndex: state.maxZIndex + 1,
     };
 
     return {

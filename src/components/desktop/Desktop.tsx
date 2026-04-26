@@ -9,9 +9,10 @@ import { MenuBar } from './MenuBar';
 import { Dock } from './Dock';
 import { WindowManager } from './WindowManager';
 import { DesktopIcon } from './DesktopIcon';
+import { ToastContainer } from '@/components/shared/Toast';
 
 const DESKTOP_APPS = [
-  { id: 'crm',       title: 'CRM',         icon: Users },
+  { id: 'crm',       title: 'CRM — MAK OS', icon: Users },
   { id: 'deals',     title: 'Deals',        icon: Handshake },
   { id: 'notes',     title: 'Notes',        icon: FileText },
   { id: 'tasks',     title: 'Tasks',        icon: CheckSquare },
@@ -41,6 +42,7 @@ export const Desktop = () => {
 
       <WindowManager />
       <Dock />
+      <ToastContainer />
     </main>
   );
 };

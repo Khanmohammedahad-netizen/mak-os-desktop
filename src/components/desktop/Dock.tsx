@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
 import { useWindowStore } from '@/stores/windowStore';
 
 const APPS = [
-  { id: 'crm', title: 'CRM', icon: Users },
+  { id: 'crm', title: 'CRM — MAK OS', icon: Users },
   { id: 'deals', title: 'Deals', icon: Handshake },
   { id: 'notes', title: 'Notes', icon: FileText },
   { id: 'tasks', title: 'Tasks', icon: CheckSquare },
