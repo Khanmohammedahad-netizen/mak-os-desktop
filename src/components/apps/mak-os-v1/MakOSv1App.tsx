@@ -7,10 +7,10 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const V1_BASE = 'https://mak-os.onrender.com';
+const V1_BASE = 'https://mak-os.vercel.app';
 
 const PAGES = [
-  { id: 'dashboard', label: 'Dashboard',   path: '',             icon: LayoutDashboard },
+  { id: 'dashboard', label: 'Dashboard',   path: '/dashboard',   icon: LayoutDashboard },
   { id: 'leads',     label: 'Leads',        path: '/leads',       icon: Users },
   { id: 'outreach',  label: 'Outreach',     path: '/outreach',    icon: Send },
   { id: 'whatsapp',  label: 'WhatsApp',     path: '/whatsapp',    icon: MessageCircle },
@@ -86,7 +86,7 @@ export const MakOSv1App = () => {
           </p>
         </div>
         <button
-          onClick={() => open('')}
+          onClick={() => open('/dashboard')}
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gold/10 border border-gold/20 hover:bg-gold/20 transition-colors text-[13px] font-medium text-gold"
         >
           <ExternalLink size={14} />
