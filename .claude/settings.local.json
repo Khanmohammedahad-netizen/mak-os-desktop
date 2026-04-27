@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d.get\\('version','unknown'\\)\\)\")",
+      "Bash(node *)",
+      "Bash(npx tsc *)",
+      "PowerShell(\\(Get-Content \"C:\\\\Users\\\\ahad\\\\.gemini\\\\antigravity\\\\scratch\\\\mak-os-desktop\\\\node_modules\\\\next\\\\package.json\" -Raw | ConvertFrom-Json\\).version)",
+      "PowerShell(Start-Sleep -Seconds 3; $response = Invoke-WebRequest -Uri \"http://localhost:3000\" -UseBasicParsing -TimeoutSec 15 -ErrorAction SilentlyContinue; if \\($response\\) { \"Status: $\\($response.StatusCode\\)\"; $response.Content | Select-String -Pattern \"error|Error|Error:|__NEXT_ERROR\" -AllMatches | Select-Object -First 10 } else { \"Failed to connect\" })",
+      "PowerShell($r = Invoke-WebRequest -Uri \"http://localhost:3000\" -UseBasicParsing -TimeoutSec 15 -ErrorAction SilentlyContinue; \"Status: $\\($r.StatusCode\\)\"; Start-Sleep -Seconds 3; $out = Get-Content \"C:\\\\Users\\\\ahad\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-ahad--gemini-antigravity-scratch-mak-os-desktop\\\\17e4a39d-727c-4ca9-b140-b39c96594bbe\\\\tasks\\\\bivpdg0kl.output\" -ErrorAction SilentlyContinue; $out | Select-Object -Last 5)",
+      "Bash(git *)",
+      "Bash(npx next *)",
+      "Bash(vercel --version)",
+      "Bash(gh auth *)"
+    ]
+  }
+}

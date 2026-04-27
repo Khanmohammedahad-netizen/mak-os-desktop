@@ -1,173 +1,305 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useCRMStore } from '@/stores/crmStore';
+import { useDealsStore } from '@/stores/dealsStore';
+import { useNotesStore } from '@/stores/notesStore';
+import { useTasksStore } from '@/stores/tasksStore';
 
-interface TerminalLine {
+interface Line {
   id: number;
-  type: 'input' | 'output' | 'error' | 'system';
+  type: 'input' | 'output' | 'error' | 'system' | 'boot';
   content: string;
 }
 
-const COMMANDS: Record<string, () => string | string[]> = {
-  help: () => [
-    '  Available commands:',
-    '  help         — Show this help message',
-    '  about        — About MAK OS',
-    '  clear        — Clear terminal',
-    '  whoami       — Current user',
-    '  version      — System version',
-    '  apps         — List installed apps',
-    '  uptime       — System uptime',
-    '  date         — Current date & time',
-    '  ls           — List files (simulated)',
-    '  echo [text]  — Print text',
-  ],
-  about: () => [
-    '  ╔══════════════════════════════════════╗',
-    '  ║       MAK OS Desktop v2.0.0          ║',
-    '  ║   Central Command for MAK Software   ║',
-    '  ╚══════════════════════════════════════╝',
-    '  Built with Next.js, TypeScript, Tailwind',
-    '  Powered by Supabase + Vercel',
-  ],
-  whoami: () => 'mak-admin@mak-software.com',
-  version: () => 'MAK OS Desktop 2.0.0 (Build 20260426)',
-  uptime: () => `System uptime: ${Math.floor(Math.random() * 72) + 1}h ${Math.floor(Math.random() * 60)}m`,
-  date: () => new Date().toString(),
-  apps: () => [
-    '  Installed applications:',
-    '  /apps/crm          — CRM & Lead Management',
-    '  /apps/deals        — Sales Pipeline',
-    '  /apps/notes        — Notes & Documents',
-    '  /apps/tasks        — Task Manager',
-    '  /apps/analytics    — Analytics Dashboard',
-    '  /apps/calendar     — Calendar',
-    '  /apps/terminal     — Terminal (you are here)',
-    '  /apps/settings     — System Settings',
-    '  /apps/mak-os-v1    — MAK OS v1 Integration',
-  ],
-  ls: () => [
-    '  drwxr-xr-x  apps/',
-    '  drwxr-xr-x  components/',
-    '  drwxr-xr-x  stores/',
-    '  drwxr-xr-x  lib/',
-    '  -rw-r--r--  CLAUDE.md',
-    '  -rw-r--r--  package.json',
-  ],
-  clear: () => '__CLEAR__',
-};
+let lineId = 0;
+const mkLine = (type: Line['type'], content: string): Line => ({ id: ++lineId, type, content });
 
-let lineCounter = 0;
+const PROMPT = 'mak@desktop ~ $';
 
 export const TerminalApp = () => {
-  const [lines, setLines] = useState<TerminalLine[]>([
-    { id: ++lineCounter, type: 'system', content: 'MAK OS Terminal v2.0.0 — Type "help" to get started.' },
-    { id: ++lineCounter, type: 'system', content: '──────────────────────────────────────────────────────' },
-  ]);
+  const { contacts } = useCRMStore();
+  const { deals } = useDealsStore();
+  const { notes } = useNotesStore();
+  const { tasks } = useTasksStore();
+
+  const [bootDone, setBootDone] = useState(false);
+  const [bootedLines, setBootedLines] = useState<string[]>([]);
+  const [typingLine, setTypingLine] = useState('');
+  const [lines, setLines] = useState<Line[]>([]);
   const [input, setInput] = useState('');
   const [history, setHistory] = useState<string[]>([]);
   const [historyIdx, setHistoryIdx] = useState(-1);
+  const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const isMock = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
+
+  // ── Boot sequence ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    const pending = tasks.filter((t) => t.status !== 'done').length;
+    const active = deals.filter((d) => !['Closed Won', 'Closed Lost'].includes(d.stage)).length;
+
+    const BOOT = [
+      'MAK OS Desktop v1.0',
+      'Initializing system...',
+      `✓ CRM loaded — ${contacts.length} contacts`,
+      `✓ Deals loaded — ${active} active`,
+      `✓ Notes loaded — ${notes.length} notes`,
+      `✓ Tasks loaded — ${pending} pending`,
+      '✓ MAK OS v1 engine — ONLINE',
+      '',
+      "Type 'help' for available commands.",
+    ];
+
+    let li = 0;
+    let ci = 0;
+    let tid: ReturnType<typeof setTimeout>;
+
+    const tick = () => {
+      if (li >= BOOT.length) { setBootDone(true); return; }
+      const line = BOOT[li];
+      if (ci <= line.length) {
+        setTypingLine(line.slice(0, ci));
+        ci++;
+        tid = setTimeout(tick, line.startsWith('✓') ? 20 : 35);
+      } else {
+        setBootedLines((p) => [...p, line]);
+        setTypingLine('');
+        li++;
+        ci = 0;
+        tid = setTimeout(tick, line === '' ? 40 : 90);
+      }
+    };
+
+    tid = setTimeout(tick, 150);
+    return () => clearTimeout(tid);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [lines]);
+  }, [bootedLines, typingLine, lines]);
 
-  const addLine = (line: Omit<TerminalLine, 'id'>) => {
-    setLines(prev => [...prev, { ...line, id: ++lineCounter }]);
-  };
+  useEffect(() => {
+    if (bootDone) inputRef.current?.focus();
+  }, [bootDone]);
 
-  const handleCommand = (cmd: string) => {
-    const trimmed = cmd.trim();
-    if (!trimmed) return;
+  // ── Commands ───────────────────────────────────────────────────────────────
+  const addLines = useCallback((...newLines: Omit<Line, 'id'>[]) => {
+    setLines((prev) => [...prev, ...newLines.map((l) => mkLine(l.type, l.content))]);
+  }, []);
 
-    addLine({ type: 'input', content: `mak@desktop:~$ ${trimmed}` });
-    setHistory(prev => [trimmed, ...prev]);
+  const runCommand = useCallback(async (raw: string) => {
+    const cmd = raw.trim();
+    if (!cmd) return;
+
+    setLines((prev) => [...prev, mkLine('input', `${PROMPT} ${cmd}`)]);
+    setHistory((h) => [cmd, ...h]);
     setHistoryIdx(-1);
 
-    const [base, ...args] = trimmed.split(' ');
-    const fn = COMMANDS[base.toLowerCase()];
+    const [base, sub, ...rest] = cmd.toLowerCase().split(' ');
 
-    if (fn) {
-      const result = fn();
-      if (result === '__CLEAR__') {
-        setLines([{ id: ++lineCounter, type: 'system', content: 'Terminal cleared.' }]);
-        return;
+    if (base === 'clear') {
+      setLines([]);
+      return;
+    }
+
+    if (base === 'help') {
+      addLines(
+        { type: 'output', content: '  Available commands:' },
+        { type: 'output', content: '  help                     — List commands' },
+        { type: 'output', content: '  stats                    — Quick system stats' },
+        { type: 'output', content: '  contacts search <query>  — Search contacts' },
+        { type: 'output', content: '  deals summary            — Pipeline overview' },
+        { type: 'output', content: '  about                    — About MAK OS' },
+        { type: 'output', content: '  clear                    — Clear terminal' },
+      );
+      return;
+    }
+
+    if (base === 'about') {
+      addLines(
+        { type: 'output', content: '  ┌──────────────────────────────────────┐' },
+        { type: 'output', content: '  │      MAK OS Desktop v1.0             │' },
+        { type: 'output', content: '  │   MAK Software Solutions            │' },
+        { type: 'output', content: '  │   Mohammed Ahad Khan (Founder)      │' },
+        { type: 'output', content: '  └──────────────────────────────────────┘' },
+        { type: 'output', content: '  Stack: Next.js 16 · Supabase · Recharts · Framer Motion' },
+      );
+      return;
+    }
+
+    if (base === 'stats') {
+      const active = deals.filter((d) => !['Closed Won', 'Closed Lost'].includes(d.stage));
+      const pipelineValue = active.reduce((s, d) => s + (d.value ?? 0), 0);
+      const won = deals.filter((d) => d.stage === 'Closed Won').length;
+      const lost = deals.filter((d) => d.stage === 'Closed Lost').length;
+      const winRate = won + lost > 0 ? ((won / (won + lost)) * 100).toFixed(1) : '0.0';
+      const pending = tasks.filter((t) => t.status !== 'done').length;
+      addLines(
+        { type: 'output', content: '  System Stats' },
+        { type: 'output', content: `  Contacts          : ${contacts.length}` },
+        { type: 'output', content: `  Active Deals      : ${active.length}` },
+        { type: 'output', content: `  Pipeline Value    : $${pipelineValue.toLocaleString()}` },
+        { type: 'output', content: `  Pending Tasks     : ${pending}` },
+        { type: 'output', content: `  Win Rate          : ${winRate}%` },
+      );
+      return;
+    }
+
+    if (base === 'contacts' && sub === 'search') {
+      const query = rest.join(' ');
+      if (!query) { addLines({ type: 'error', content: '  Usage: contacts search <query>' }); return; }
+      setBusy(true);
+
+      if (isMock) {
+        const q = query.toLowerCase();
+        const results = contacts.filter(
+          (c) => c.name.toLowerCase().includes(q) || (c.email ?? '').toLowerCase().includes(q) || (c.company ?? '').toLowerCase().includes(q)
+        );
+        showContactResults(results, query);
+        setBusy(false);
+      } else {
+        try {
+          const res = await fetch(`/api/contacts?search=${encodeURIComponent(query)}`);
+          const data = await res.json();
+          showContactResults(Array.isArray(data) ? data : [], query);
+        } catch { addLines({ type: 'error', content: '  Error: Failed to search contacts.' }); }
+        setBusy(false);
       }
-      const outputs = Array.isArray(result) ? result : [result];
-      outputs.forEach(line => addLine({ type: 'output', content: line }));
-    } else if (base === 'echo') {
-      addLine({ type: 'output', content: args.join(' ') });
+      return;
+    }
+
+    if (base === 'deals' && sub === 'summary') {
+      const STAGES = ['Lead', 'Qualified', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost'];
+      addLines({ type: 'output', content: '  Pipeline Summary' });
+      STAGES.forEach((stage) => {
+        const stageDeal = deals.filter((d) => d.stage === stage);
+        const val = stageDeal.reduce((s, d) => s + (d.value ?? 0), 0);
+        if (stageDeal.length > 0) {
+          addLines({
+            type: 'output',
+            content: `  ${stage.padEnd(14)} : ${String(stageDeal.length).padStart(2)} deal${stageDeal.length !== 1 ? 's' : ' '} · $${val.toLocaleString()}`,
+          });
+        }
+      });
+      const total = deals.filter((d) => !['Closed Won', 'Closed Lost'].includes(d.stage))
+        .reduce((s, d) => s + (d.value ?? 0), 0);
+      addLines({ type: 'output', content: `  ${'Total Pipeline'.padEnd(14)} : $${total.toLocaleString()}` });
+      return;
+    }
+
+    addLines({ type: 'error', content: `  command not found: ${base}. Type 'help' for available commands.` });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contacts, deals, notes, tasks, isMock, addLines]);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const showContactResults = (results: any[], query: string) => {
+    if (results.length === 0) {
+      addLines({ type: 'output', content: `  No contacts found for "${query}"` });
     } else {
-      addLine({ type: 'error', content: `  command not found: ${base}. Type "help" for available commands.` });
+      addLines({ type: 'output', content: `  Found ${results.length} contact${results.length !== 1 ? 's' : ''} for "${query}":` });
+      results.slice(0, 8).forEach((c) => {
+        addLines({
+          type: 'output',
+          content: `  → ${c.name}${c.email ? ` · ${c.email}` : ''}${c.company ? ` · ${c.company}` : ''} · ${c.status}`,
+        });
+      });
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      handleCommand(input);
+      if (busy) return;
+      runCommand(input);
       setInput('');
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      const newIdx = Math.min(historyIdx + 1, history.length - 1);
-      setHistoryIdx(newIdx);
-      setInput(history[newIdx] || '');
+      const idx = Math.min(historyIdx + 1, history.length - 1);
+      setHistoryIdx(idx);
+      setInput(history[idx] ?? '');
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
-      const newIdx = Math.max(historyIdx - 1, -1);
-      setHistoryIdx(newIdx);
-      setInput(newIdx === -1 ? '' : history[newIdx]);
+      const idx = Math.max(historyIdx - 1, -1);
+      setHistoryIdx(idx);
+      setInput(idx === -1 ? '' : history[idx]);
     }
   };
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div
-      className="h-full bg-[#06060A] flex flex-col font-mono text-[13px] cursor-text"
-      onClick={() => inputRef.current?.focus()}
+      className="h-full flex flex-col cursor-text"
+      style={{ backgroundColor: '#0A0A0A', fontFamily: '"JetBrains Mono", "Fira Code", "Courier New", monospace' }}
+      onClick={() => bootDone && inputRef.current?.focus()}
     >
-      {/* Terminal Output */}
-      <div className="flex-1 overflow-auto p-6 space-y-0.5 scrollbar-thin">
-        <AnimatePresence initial={false}>
-          {lines.map((line) => (
-            <motion.div
-              key={line.id}
-              initial={{ opacity: 0, x: -4 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.1 }}
-              className={
-                line.type === 'input'
-                  ? 'text-gold-light'
-                  : line.type === 'error'
-                  ? 'text-os-red'
-                  : line.type === 'system'
-                  ? 'text-gold/50'
-                  : 'text-[#A0A0A0]'
-              }
-            >
-              {line.content}
-            </motion.div>
-          ))}
-        </AnimatePresence>
+      <div className="flex-1 overflow-auto p-5 space-y-0.5 text-[13px] leading-relaxed">
+        {/* Boot lines */}
+        {bootedLines.map((line, i) => (
+          <div
+            key={`boot-${i}`}
+            className={line.startsWith('✓') ? 'text-[#28C840]' : line === '' ? 'h-2' : 'text-[#C9A84C]/60'}
+          >
+            {line || ' '}
+          </div>
+        ))}
+
+        {/* Currently typing line */}
+        {!bootDone && (
+          <div className={typingLine.startsWith('✓') ? 'text-[#28C840]' : 'text-[#C9A84C]/60'}>
+            {typingLine}
+            <span className="animate-pulse text-[#C9A84C]">█</span>
+          </div>
+        )}
+
+        {/* Post-boot lines */}
+        {lines.map((line) => (
+          <div
+            key={line.id}
+            className={
+              line.type === 'input'
+                ? 'text-[#C9A84C]'
+                : line.type === 'error'
+                ? 'text-[#FF5F57]'
+                : line.type === 'system'
+                ? 'text-[#C9A84C]/40'
+                : 'text-[#A8A8A8]'
+            }
+          >
+            {line.content || ' '}
+          </div>
+        ))}
+
+        {busy && (
+          <div className="text-[#C9A84C]/50 animate-pulse">  Loading...</div>
+        )}
+
         <div ref={bottomRef} />
       </div>
 
-      {/* Input Line */}
-      <div className="flex items-center px-6 py-3 border-t border-gold/10 bg-black/30">
-        <span className="text-gold-light mr-2 select-none">mak@desktop:~$</span>
-        <input
-          ref={inputRef}
-          autoFocus
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="flex-1 bg-transparent text-[#E0E0E0] focus:outline-none caret-gold"
-          spellCheck={false}
-          autoComplete="off"
-        />
-      </div>
+      {/* Input */}
+      {bootDone && (
+        <div
+          className="flex items-center px-5 py-3 border-t text-[13px]"
+          style={{ borderColor: 'rgba(201,168,76,0.15)', backgroundColor: 'rgba(0,0,0,0.4)' }}
+        >
+          <span className="text-[#C9A84C] mr-2 select-none whitespace-nowrap">{PROMPT}</span>
+          <input
+            ref={inputRef}
+            autoFocus
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={busy}
+            className="flex-1 bg-transparent focus:outline-none caret-[#C9A84C]"
+            style={{ color: '#E0E0E0', fontFamily: 'inherit', fontSize: 'inherit' }}
+            spellCheck={false}
+            autoComplete="off"
+          />
+        </div>
+      )}
     </div>
   );
 };

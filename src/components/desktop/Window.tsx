@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { memo, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useDragControls, useMotionValue } from 'framer-motion';
 import { Minus, Square, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -11,7 +11,7 @@ interface WindowProps {
   children?: React.ReactNode;
 }
 
-export const Window = ({ window, children }: WindowProps) => {
+export const Window = memo(({ window, children }: WindowProps) => {
   const {
     closeWindow,
     minimizeWindow,
@@ -25,12 +25,11 @@ export const Window = ({ window, children }: WindowProps) => {
   const isFocused = activeWindowId === window.id;
   const dragControls = useDragControls();
   const [isResizing, setIsResizing] = useState(false);
+  const [isMinimizingNow, setIsMinimizingNow] = useState(false);
 
-  // MotionValues for position — framer-motion drag writes to these directly
   const x = useMotionValue(window.position.x);
   const y = useMotionValue(window.position.y);
 
-  // Sync MotionValues when position is updated externally (e.g., restore from minimize)
   const isDraggingRef = useRef(false);
   useEffect(() => {
     if (!isDraggingRef.current) {
@@ -48,9 +47,9 @@ export const Window = ({ window, children }: WindowProps) => {
     const startWidth = window.size.width;
     const startHeight = window.size.height;
 
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const newWidth = Math.max(400, startWidth + (moveEvent.pageX - startX));
-      const newHeight = Math.max(300, startHeight + (moveEvent.pageY - startY));
+    const handleMouseMove = (ev: MouseEvent) => {
+      const newWidth = Math.max(400, startWidth + (ev.pageX - startX));
+      const newHeight = Math.max(300, startHeight + (ev.pageY - startY));
       updateSize(window.id, { width: newWidth, height: newHeight });
     };
 
@@ -62,6 +61,12 @@ export const Window = ({ window, children }: WindowProps) => {
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleMinimize = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsMinimizingNow(true);
+    minimizeWindow(window.id);
   };
 
   const windowStyle = window.isMaximized
@@ -85,9 +90,13 @@ export const Window = ({ window, children }: WindowProps) => {
       {!window.isMinimized && (
         <motion.div
           key={window.id}
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
+          initial={{ scale: 0.92, opacity: 0, y: 8 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={
+            isMinimizingNow
+              ? { scale: 0.12, opacity: 0, y: 400, transition: { duration: 0.35, ease: [0.4, 0, 1, 1] } }
+              : { scale: 0.92, opacity: 0, y: 8, transition: { duration: 0.2 } }
+          }
           transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
           style={{
             ...windowStyle,
@@ -95,9 +104,12 @@ export const Window = ({ window, children }: WindowProps) => {
             y: window.isMaximized ? 0 : y,
           }}
           onMouseDown={() => focusWindow(window.id)}
+          onContextMenu={(e) => e.stopPropagation()}
           className={cn(
-            'fixed glass-window rounded-xl overflow-hidden flex flex-col',
-            isFocused ? 'shadow-2xl ring-1 ring-gold/30' : 'shadow-lg opacity-90',
+            'fixed glass-window rounded-xl overflow-hidden flex flex-col transition-shadow duration-200',
+            isFocused
+              ? 'shadow-[0_24px_80px_rgba(0,0,0,0.65),0_0_0_1px_rgba(201,168,76,0.18)]'
+              : 'shadow-[0_8px_32px_rgba(0,0,0,0.4)] opacity-[0.88]',
             window.isMaximized && 'rounded-none border-x-0 border-b-0'
           )}
           drag={!window.isMaximized && !isResizing}
@@ -115,12 +127,15 @@ export const Window = ({ window, children }: WindowProps) => {
           <div
             className="h-[32px] flex items-center px-3 select-none cursor-default bg-white/5 border-b border-gold/10 flex-shrink-0"
             onPointerDown={(e) => {
-              if (!window.isMaximized) {
-                dragControls.start(e);
-              }
+              if (!window.isMaximized) dragControls.start(e);
             }}
+            onDoubleClick={() => maximizeWindow(window.id)}
           >
-            <div className="flex items-center space-x-2 w-[60px]">
+            {/* Traffic lights */}
+            <div
+              className="flex items-center space-x-2 w-[60px]"
+              onDoubleClick={(e) => e.stopPropagation()}
+            >
               <button
                 onClick={(e) => { e.stopPropagation(); closeWindow(window.id); }}
                 className="w-3 h-3 rounded-full bg-os-red flex items-center justify-center group"
@@ -128,7 +143,7 @@ export const Window = ({ window, children }: WindowProps) => {
                 <X size={8} className="opacity-0 group-hover:opacity-100 text-black/50" />
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); minimizeWindow(window.id); }}
+                onClick={handleMinimize}
                 className="w-3 h-3 rounded-full bg-os-yellow flex items-center justify-center group"
               >
                 <Minus size={8} className="opacity-0 group-hover:opacity-100 text-black/50" />
@@ -148,7 +163,7 @@ export const Window = ({ window, children }: WindowProps) => {
             <div className="w-[60px]" />
           </div>
 
-          {/* Content Area */}
+          {/* Content */}
           <div className="flex-1 overflow-auto bg-bg-primary/50 min-h-0">
             {children ?? (
               <div className="flex flex-col items-center justify-center h-full space-y-4">
@@ -156,12 +171,12 @@ export const Window = ({ window, children }: WindowProps) => {
                   <span className="text-gold text-2xl font-bold">M</span>
                 </div>
                 <h2 className="text-xl font-display font-semibold text-gold tracking-wide">{window.title}</h2>
-                <p className="text-text-secondary text-sm">Application content coming soon...</p>
+                <p className="text-text-secondary text-sm">Application content coming soon…</p>
               </div>
             )}
           </div>
 
-          {/* Resize Handle */}
+          {/* Resize handle */}
           {!window.isMaximized && (
             <div
               onMouseDown={handleResizeStart}
@@ -174,4 +189,5 @@ export const Window = ({ window, children }: WindowProps) => {
       )}
     </AnimatePresence>
   );
-};
+});
+Window.displayName = 'Window';

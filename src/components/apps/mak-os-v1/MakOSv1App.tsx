@@ -1,120 +1,175 @@
 "use client";
 
 import React, { useState } from 'react';
-import { ExternalLink, Globe, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Cpu, LayoutDashboard, Users, Send, MessageCircle,
+  Mail, Phone, Columns, Settings, ExternalLink,
+  RefreshCw, Globe,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const MAK_V1_URL = process.env.NEXT_PUBLIC_MAK_V1_URL || '';
+const V1_BASE = 'https://mak-os.onrender.com';
+
+const PAGES = [
+  { id: 'dashboard',   label: 'Dashboard',   path: '',             icon: LayoutDashboard },
+  { id: 'leads',       label: 'Leads',        path: '/leads',       icon: Users },
+  { id: 'outreach',    label: 'Outreach',     path: '/outreach',    icon: Send },
+  { id: 'whatsapp',    label: 'WhatsApp',     path: '/whatsapp',    icon: MessageCircle },
+  { id: 'email',       label: 'Email',        path: '/email',       icon: Mail },
+  { id: 'voice',       label: 'Voice Calls',  path: '/voice-calls', icon: Phone },
+  { id: 'pipeline',    label: 'Pipeline',     path: '/pipeline',    icon: Columns },
+  { id: 'settings',    label: 'Settings',     path: '/settings',    icon: Settings },
+];
 
 export const MakOSv1App = () => {
-  const [url, setUrl] = useState(MAK_V1_URL);
-  const [inputUrl, setInputUrl] = useState(MAK_V1_URL);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasUrl] = useState(!!MAK_V1_URL);
+  const [activePage, setActivePage] = useState(PAGES[0]);
+  const [loading, setLoading] = useState(false);
+  const [showFallback, setShowFallback] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const handleNavigate = () => {
-    setUrl(inputUrl);
-    setIsLoading(true);
+  const iframeUrl = `${V1_BASE}${activePage.path}`;
+
+  const refresh = () => {
+    setLoading(true);
+    setRefreshKey((k) => k + 1);
   };
 
   return (
-    <div className="flex flex-col h-full bg-bg-surface/20">
-      {/* Browser Chrome */}
-      <div className="flex items-center space-x-3 px-4 py-2 border-b border-gold/10 bg-white/5">
-        <div className="flex items-center space-x-1">
-          <button className="p-1.5 rounded-md hover:bg-white/10 text-text-secondary transition-colors disabled:opacity-30" disabled>
-            <ChevronLeft size={14} />
-          </button>
-          <button className="p-1.5 rounded-md hover:bg-white/10 text-text-secondary transition-colors disabled:opacity-30" disabled>
-            <ChevronRight size={14} />
-          </button>
+    <div className="flex h-full">
+      {/* Sidebar */}
+      <div className="w-[220px] flex-shrink-0 flex flex-col bg-[#0D0D0F] border-r border-gold/10">
+        {/* Sidebar header */}
+        <div className="p-5 border-b border-gold/10">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-9 h-9 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center flex-shrink-0">
+              <Cpu size={18} className="text-gold" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[12px] font-semibold text-text-primary truncate">MAK OS v1</p>
+              <p className="text-[10px] text-text-secondary truncate">Autonomous Engine</p>
+            </div>
+          </div>
+          {/* LIVE badge */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 border border-green-500/20 w-fit">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-[9px] font-bold text-green-400 uppercase tracking-widest">Live System</span>
+          </div>
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 py-3 space-y-0.5 px-2 overflow-auto">
+          {PAGES.map((page) => {
+            const Icon = page.icon;
+            const isActive = activePage.id === page.id;
+            return (
+              <button
+                key={page.id}
+                onClick={() => { setActivePage(page); setLoading(true); setShowFallback(false); }}
+                className={cn(
+                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all',
+                  isActive
+                    ? 'bg-gold/15 text-gold border border-gold/20'
+                    : 'text-text-secondary hover:bg-white/5 hover:text-text-primary'
+                )}
+              >
+                <Icon size={15} className={isActive ? 'text-gold' : ''} />
+                {page.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Base URL */}
+        <div className="p-3 border-t border-gold/10">
+          <p className="text-[9px] text-text-secondary/40 font-mono truncate">{V1_BASE}</p>
+        </div>
+      </div>
+
+      {/* Main area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Toolbar */}
+        <div className="flex items-center gap-3 px-4 py-2.5 border-b border-gold/10 bg-white/3 flex-shrink-0">
           <button
-            onClick={() => { setIsLoading(true); setTimeout(() => setIsLoading(false), 500); }}
+            onClick={refresh}
             className="p-1.5 rounded-md hover:bg-white/10 text-text-secondary transition-colors"
           >
-            <RefreshCw size={14} className={cn(isLoading && 'animate-spin')} />
+            <RefreshCw size={13} className={cn(loading && 'animate-spin')} />
           </button>
-        </div>
-
-        <div className="flex-1 flex items-center space-x-2 bg-white/5 border border-gold/10 rounded-lg px-3 py-1.5">
-          <Globe size={12} className="text-text-secondary flex-shrink-0" />
-          <input
-            type="text"
-            value={inputUrl}
-            onChange={(e) => setInputUrl(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleNavigate()}
-            placeholder="Enter MAK OS v1 URL..."
-            className="flex-1 bg-transparent text-xs text-text-primary focus:outline-none placeholder:text-text-secondary/40 font-mono"
-          />
-        </div>
-
-        {url && (
+          <div className="flex-1 flex items-center gap-2 bg-white/5 border border-gold/10 rounded-lg px-3 py-1.5">
+            <Globe size={11} className="text-text-secondary flex-shrink-0" />
+            <span className="text-xs font-mono text-text-secondary truncate">{iframeUrl}</span>
+          </div>
           <a
-            href={url}
+            href={iframeUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="p-1.5 rounded-md hover:bg-white/10 text-text-secondary hover:text-gold transition-colors"
+            title="Open in browser"
           >
-            <ExternalLink size={14} />
+            <ExternalLink size={13} />
           </a>
-        )}
-      </div>
+          <button
+            onClick={() => setShowFallback((s) => !s)}
+            className="text-[10px] text-text-secondary/50 hover:text-gold transition-colors px-2 py-1 rounded border border-gold/10 hover:border-gold/30"
+          >
+            {showFallback ? 'Try Embed' : 'Open Links'}
+          </button>
+        </div>
 
-      {/* Content Area */}
-      {hasUrl && url ? (
-        <div className="flex-1 relative">
-          <iframe
-            src={url}
-            className="w-full h-full border-0"
-            onLoad={() => setIsLoading(false)}
-            title="MAK OS v1"
-            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
-          />
-          {isLoading && (
-            <div className="absolute inset-0 bg-bg-primary/80 flex items-center justify-center">
-              <div className="w-8 h-8 border-2 border-gold/30 border-t-gold rounded-full animate-spin" />
+        {/* Content */}
+        <div className="flex-1 relative overflow-hidden">
+          {!showFallback ? (
+            <>
+              <iframe
+                key={`${activePage.id}-${refreshKey}`}
+                src={iframeUrl}
+                className="w-full h-full border-0"
+                onLoad={() => setLoading(false)}
+                onError={() => { setLoading(false); setShowFallback(true); }}
+                title={`MAK OS v1 — ${activePage.label}`}
+                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
+              />
+              {loading && (
+                <div className="absolute inset-0 bg-bg-primary/80 flex flex-col items-center justify-center gap-3">
+                  <div className="w-8 h-8 border-2 border-gold/30 border-t-gold rounded-full animate-spin" />
+                  <p className="text-[12px] text-text-secondary">Loading {activePage.label}…</p>
+                </div>
+              )}
+            </>
+          ) : (
+            /* Fallback card grid */
+            <div className="h-full overflow-auto p-8">
+              <div className="mb-6">
+                <h2 className="text-xl font-display font-semibold text-gold">MAK OS v1 — Autonomous Engine</h2>
+                <p className="text-text-secondary text-sm mt-1">Iframe blocked. Open pages directly in browser.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4 max-w-2xl">
+                {PAGES.map((page) => {
+                  const Icon = page.icon;
+                  return (
+                    <a
+                      key={page.id}
+                      href={`${V1_BASE}${page.path}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-4 p-4 rounded-2xl border border-gold/10 bg-white/3 hover:border-gold/30 hover:bg-white/5 transition-all group"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center border border-gold/20 group-hover:bg-gold/20 transition-colors flex-shrink-0">
+                        <Icon size={18} className="text-gold" />
+                      </div>
+                      <div>
+                        <p className="text-[14px] font-medium text-text-primary">{page.label}</p>
+                        <p className="text-[11px] text-text-secondary font-mono">{V1_BASE}{page.path || '/'}</p>
+                      </div>
+                      <ExternalLink size={12} className="text-text-secondary/30 ml-auto flex-shrink-0 group-hover:text-gold/60 transition-colors" />
+                    </a>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
-      ) : (
-        <div className="flex-1 flex flex-col items-center justify-center space-y-6 p-8">
-          <div className="w-20 h-20 rounded-2xl bg-gold/10 border border-gold/20 flex items-center justify-center">
-            <span className="text-gold text-3xl font-display font-bold">v1</span>
-          </div>
-          <div className="text-center space-y-2">
-            <h2 className="text-2xl font-display font-semibold text-gold">MAK OS v1</h2>
-            <p className="text-text-secondary max-w-sm">
-              Your existing MAK OS v1 system. Enter the URL above to load it in this integrated view,
-              or configure <code className="text-gold/80 text-xs bg-gold/10 px-1 py-0.5 rounded">NEXT_PUBLIC_MAK_V1_URL</code> in your environment.
-            </p>
-          </div>
-
-          <div className="w-full max-w-sm space-y-3">
-            <div className="flex items-center space-x-2">
-              <div className="flex-1 bg-white/5 border border-gold/10 rounded-lg px-3 py-2 flex items-center space-x-2">
-                <Globe size={14} className="text-text-secondary" />
-                <input
-                  type="text"
-                  value={inputUrl}
-                  onChange={(e) => setInputUrl(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleNavigate()}
-                  placeholder="https://your-mak-v1-url.com"
-                  className="flex-1 bg-transparent text-sm text-text-primary focus:outline-none placeholder:text-text-secondary/40"
-                />
-              </div>
-              <button
-                onClick={handleNavigate}
-                className="px-4 py-2 bg-gold text-bg-primary rounded-lg text-sm font-medium hover:bg-gold-light transition-colors"
-              >
-                Open
-              </button>
-            </div>
-            <p className="text-[11px] text-text-secondary/50 text-center">
-              Press Enter or click Open to load MAK OS v1 in this window
-            </p>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 };

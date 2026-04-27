@@ -5,6 +5,7 @@ import { Star, Trash2, Check, Cloud, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useNotesStore } from '@/stores/notesStore';
+import { useToastStore } from '@/stores/toastStore';
 import { Button } from '@/components/shared/Button';
 
 const FOLDERS = ['General', 'Clients', 'Ideas', 'Meetings', 'Personal'];
@@ -13,6 +14,8 @@ type SaveState = 'idle' | 'saving' | 'saved';
 
 export const NoteEditor = () => {
   const { notes, activeNoteId, updateNote, deleteNote } = useNotesStore();
+  const { toast } = useToastStore();
+  const isMock = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
   const activeNote = notes.find((n) => n.id === activeNoteId);
 
   const [title, setTitle] = useState('');
@@ -55,6 +58,13 @@ export const NoteEditor = () => {
       const tagsArray = newTags
         ? newTags.split(',').map((t) => t.trim()).filter(Boolean)
         : [];
+      if (isMock) {
+        updateNote(activeNoteId, { title: newTitle, content: newContent, tags: tagsArray });
+        setSaveState('saved');
+        toast('Note saved', 'info');
+        savedTimeout.current = setTimeout(() => setSaveState('idle'), 2500);
+        return;
+      }
       try {
         const res = await fetch(`/api/notes/${activeNoteId}`, {
           method: 'PATCH',
@@ -64,13 +74,15 @@ export const NoteEditor = () => {
         if (res.ok) {
           updateNote(activeNoteId, { title: newTitle, content: newContent, tags: tagsArray });
           setSaveState('saved');
+          toast('Note saved', 'info');
           savedTimeout.current = setTimeout(() => setSaveState('idle'), 2500);
         }
       } catch {
         setSaveState('idle');
       }
     }, 1000);
-  }, [activeNoteId, updateNote]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeNoteId, updateNote, isMock, toast]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;

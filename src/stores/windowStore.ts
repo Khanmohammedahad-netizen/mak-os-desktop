@@ -31,10 +31,14 @@ const DEFAULT_HEIGHT = 600;
 
 const APP_CONFIGS: Record<string, { width: number; height: number }> = {
   crm:       { width: 1100, height: 700 },
-  deals:     { width: 1000, height: 680 },
-  analytics: { width: 1000, height: 680 },
+  deals:     { width: 1050, height: 650 },
+  analytics: { width: 1100, height: 750 },
   notes:     { width: 900,  height: 600 },
-  calendar:  { width: 900,  height: 640 },
+  tasks:     { width: 600,  height: 500 },
+  v1:        { width: 1100, height: 700 },
+  calendar:  { width: 800,  height: 600 },
+  terminal:  { width: 700,  height: 450 },
+  settings:  { width: 700,  height: 500 },
 };
 
 export const useWindowStore = create<WindowStore>((set) => ({
