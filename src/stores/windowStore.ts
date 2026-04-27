@@ -18,6 +18,7 @@ interface WindowStore {
   maxZIndex: number;
   
   openWindow: (id: string, title: string, icon?: string) => void;
+  toggleWindow: (id: string, title: string) => void;
   closeWindow: (id: string) => void;
   minimizeWindow: (id: string) => void;
   maximizeWindow: (id: string) => void;
@@ -94,6 +95,39 @@ export const useWindowStore = create<WindowStore>((set) => ({
       maxZIndex: state.maxZIndex + 1
     };
   }),
+
+  toggleWindow: (id, title) => {
+    const state = useWindowStore.getState();
+    const win = state.windows.find((w) => w.id === id);
+    if (!win) {
+      // Not open — open it
+      state.openWindow(id, title);
+    } else if (win.isMinimized) {
+      // Minimized — restore and focus
+      set((s) => ({
+        windows: s.windows.map((w) =>
+          w.id === id ? { ...w, isMinimized: false, zIndex: s.maxZIndex + 1 } : w
+        ),
+        activeWindowId: id,
+        maxZIndex: s.maxZIndex + 1,
+      }));
+    } else if (state.activeWindowId === id) {
+      // Open and focused — minimize
+      set((s) => ({
+        windows: s.windows.map((w) => w.id === id ? { ...w, isMinimized: true } : w),
+        activeWindowId: null,
+      }));
+    } else {
+      // Open but unfocused — focus it
+      set((s) => ({
+        windows: s.windows.map((w) =>
+          w.id === id ? { ...w, zIndex: s.maxZIndex + 1 } : w
+        ),
+        activeWindowId: id,
+        maxZIndex: s.maxZIndex + 1,
+      }));
+    }
+  },
 
   closeWindow: (id) => set((state) => ({
     windows: state.windows.filter(w => w.id !== id),

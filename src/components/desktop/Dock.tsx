@@ -67,7 +67,7 @@ interface DockIconProps {
 
 const DockIcon = memo(({ mouseX, app }: DockIconProps) => {
   const ref = useRef<HTMLDivElement>(null);
-  const { openWindow, windows } = useWindowStore();
+  const { toggleWindow, windows } = useWindowStore();
   const isOpen = windows.some((w) => w.id === app.id);
 
   // Bounce on open
@@ -98,7 +98,7 @@ const DockIcon = memo(({ mouseX, app }: DockIconProps) => {
         style={{ width }}
         animate={bouncing ? { y: [0, -10, 0, -5, 0] } : { y: 0 }}
         transition={bouncing ? { duration: 0.55, ease: 'easeOut' } : undefined}
-        onClick={() => openWindow(app.id, app.title)}
+        onClick={() => toggleWindow(app.id, app.title)}
         className={cn(
           'aspect-square rounded-xl glass flex items-center justify-center cursor-pointer transition-colors duration-200',
           'hover:bg-gold/10 hover:border-gold/30',
