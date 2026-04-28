@@ -1,0 +1,31 @@
+{
+  "results": [
+    {
+      "fsq_id": "4b058783f964a520539c22e3",
+      "name": "Hotel Nikhil Grand",
+      "location": {
+        "address": "3-1-886, Nimboliadda",
+        "locality": "Hyderabad",
+        "country": "IN"
+      },
+      "geocodes": { "main": { "latitude": 17.3780, "longitude": 78.4740 } },
+      "categories": [{ "id": 13065, "name": "Restaurant" }],
+      "tel": "+91 40 2461 2345",
+      "website": "https://nikkhilgrand.com",
+      "rating": 7.8
+    },
+    {
+      "fsq_id": "4b3e9cf7f964a520b08525e3",
+      "name": "Kebab-E-Bahar",
+      "location": {
+        "address": "Taj Banjara Hotel",
+        "locality": "Hyderabad",
+        "country": "IN"
+      },
+      "geocodes": { "main": { "latitude": 17.4200, "longitude": 78.4500 } },
+      "categories": [{ "id": 13003, "name": "Barbecue Restaurant" }],
+      "tel": "+91 40 6666 9999",
+      "rating": 8.2
+    }
+  ]
+}

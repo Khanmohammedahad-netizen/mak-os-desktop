@@ -1,0 +1,35 @@
+{
+  "businesses": [
+    {
+      "id": "yelp-biz-001",
+      "name": "Spice Garden",
+      "location": {
+        "address1": "12 Banjara Hills",
+        "city": "Hyderabad",
+        "country": "IN"
+      },
+      "coordinates": { "latitude": 17.4156, "longitude": 78.4347 },
+      "phone": "+914023456789",
+      "url": "https://www.yelp.com/biz/spice-garden",
+      "rating": 4.2,
+      "review_count": 87,
+      "categories": [{ "alias": "restaurants", "title": "Restaurants" }]
+    },
+    {
+      "id": "yelp-biz-002",
+      "name": "Chutneys",
+      "location": {
+        "address1": "Road No 1, Jubilee Hills",
+        "city": "Hyderabad",
+        "country": "IN"
+      },
+      "coordinates": { "latitude": 17.4302, "longitude": 78.4076 },
+      "phone": "+914023998877",
+      "url": "https://www.yelp.com/biz/chutneys",
+      "rating": 4.5,
+      "review_count": 212,
+      "categories": [{ "alias": "indpak", "title": "Indian" }]
+    }
+  ],
+  "total": 2
+}

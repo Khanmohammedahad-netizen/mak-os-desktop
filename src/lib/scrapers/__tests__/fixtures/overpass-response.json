@@ -1,0 +1,40 @@
+{
+  "elements": [
+    {
+      "type": "node",
+      "id": 123456789,
+      "lat": 17.3850,
+      "lon": 78.4867,
+      "tags": {
+        "name": "Paradise Biryani",
+        "amenity": "restaurant",
+        "addr:street": "MG Road",
+        "addr:city": "Hyderabad",
+        "addr:country": "IN",
+        "phone": "+91-40-12345678",
+        "website": "https://paradisebiryani.com",
+        "cuisine": "indian"
+      }
+    },
+    {
+      "type": "way",
+      "id": 987654321,
+      "center": { "lat": 17.3900, "lon": 78.4900 },
+      "tags": {
+        "name": "Bawarchi Restaurant",
+        "amenity": "restaurant",
+        "addr:city": "Hyderabad",
+        "phone": "+91-40-87654321"
+      }
+    },
+    {
+      "type": "node",
+      "id": 111111111,
+      "lat": 17.3820,
+      "lon": 78.4840,
+      "tags": {
+        "amenity": "restaurant"
+      }
+    }
+  ]
+}

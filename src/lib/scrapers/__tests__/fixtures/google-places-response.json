@@ -1,0 +1,19 @@
+{
+  "places": [
+    {
+      "id": "places/ChIJN1t_tDeuEmsRUsoyG83frY4",
+      "displayName": { "text": "Ohri's Dum Pukht Jolly NHI Road", "languageCode": "en" },
+      "formattedAddress": "Ohris Hotel, Hyderabad, Telangana 500029, India",
+      "location": { "latitude": 17.3950, "longitude": 78.4772 },
+      "nationalPhoneNumber": "040 6611 1111",
+      "websiteUri": "https://ohris.com",
+      "rating": 4.3,
+      "userRatingCount": 1542,
+      "types": ["restaurant", "food", "point_of_interest"],
+      "addressComponents": [
+        { "longText": "Hyderabad", "types": ["locality"] },
+        { "longText": "India", "types": ["country"] }
+      ]
+    }
+  ]
+}

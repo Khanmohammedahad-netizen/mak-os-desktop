@@ -1,0 +1,37 @@
+{
+  "items": [
+    {
+      "id": "here:pds:place:356jx7ps-ba7c2b3748504bbfa048a7c8e9f4a4ef",
+      "title": "Peshawar Restaurant",
+      "address": {
+        "label": "Peshawar Restaurant, Nampally, Hyderabad, 500001, India",
+        "street": "Nampally Station Road",
+        "city": "Hyderabad",
+        "countryName": "India",
+        "countryCode": "IND"
+      },
+      "position": { "lat": 17.3791, "lng": 78.4729 },
+      "contacts": [
+        { "phone": [{ "value": "+914024751234" }] },
+        { "www": [{ "value": "https://peshawar.in" }] }
+      ],
+      "categories": [{ "id": "100-1000-0000", "name": "Restaurant" }]
+    },
+    {
+      "id": "here:pds:place:356jx7ps-abc123",
+      "title": "Hotel Shadab",
+      "address": {
+        "label": "Hotel Shadab, High Court Road, Hyderabad, India",
+        "street": "High Court Road",
+        "city": "Hyderabad",
+        "countryName": "India",
+        "countryCode": "IND"
+      },
+      "position": { "lat": 17.3617, "lng": 78.4747 },
+      "contacts": [
+        { "phone": [{ "value": "+914024521234" }] }
+      ],
+      "categories": [{ "id": "100-1000-0000", "name": "Restaurant" }]
+    }
+  ]
+}
