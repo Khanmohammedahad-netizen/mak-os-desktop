@@ -111,8 +111,8 @@ const LOCAL_DIGITS: Readonly<Record<string, number>> = {
  */
 export function normalizePhone(
   phone: string,
-  city: string,
-  country: string,
+  city?: string,
+  country?: string,
 ): string | null {
   if (!phone || !phone.trim()) return null;
 
@@ -153,7 +153,7 @@ export function normalizePhone(
   const localNumber = digits.slice(-expectedLocal);
 
   const normalized = `+${callingCode}${localNumber}`;
-  const totalDigits = normalized.replace(/\D/g, '').length;
+  const totalDigits = callingCode.length + localNumber.length;
 
   if (totalDigits < 10 || totalDigits > 15) return null;
 
