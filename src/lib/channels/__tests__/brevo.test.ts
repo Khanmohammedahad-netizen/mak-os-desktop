@@ -8,13 +8,12 @@ const mockSupabaseChain = {
   select: vi.fn(),
   eq: vi.fn(),
   gte: vi.fn(),
-  single: vi.fn(),
   insert: vi.fn(),
 }
 mockSupabaseChain.from.mockReturnValue(mockSupabaseChain)
 mockSupabaseChain.select.mockReturnValue(mockSupabaseChain)
 mockSupabaseChain.eq.mockReturnValue(mockSupabaseChain)
-mockSupabaseChain.gte.mockReturnValue(mockSupabaseChain)
+mockSupabaseChain.gte.mockResolvedValue({ count: 0, error: null })
 mockSupabaseChain.insert.mockResolvedValue({ error: null })
 
 vi.mock('@/lib/supabase-server', () => ({
@@ -27,7 +26,7 @@ describe('sendEmail', () => {
     mockSupabaseChain.from.mockReturnValue(mockSupabaseChain)
     mockSupabaseChain.select.mockReturnValue(mockSupabaseChain)
     mockSupabaseChain.eq.mockReturnValue(mockSupabaseChain)
-    mockSupabaseChain.gte.mockReturnValue(mockSupabaseChain)
+    mockSupabaseChain.gte.mockResolvedValue({ count: 0, error: null })
     mockSupabaseChain.insert.mockResolvedValue({ error: null })
     process.env.DAILY_EMAIL_LIMIT = '250'
     process.env.BREVO_API_KEY = 'test-key'
@@ -36,8 +35,7 @@ describe('sendEmail', () => {
   })
 
   it('sends email via Brevo API with correct payload and headers', async () => {
-    // Daily count = 0
-    mockSupabaseChain.single.mockResolvedValueOnce({ data: { count: 0 }, error: null })
+    mockSupabaseChain.gte.mockResolvedValueOnce({ count: 0, error: null })
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ messageId: 'brevo-123' }),
@@ -63,7 +61,7 @@ describe('sendEmail', () => {
   })
 
   it('refuses send when at daily cap (count === limit)', async () => {
-    mockSupabaseChain.single.mockResolvedValueOnce({ data: { count: 250 }, error: null })
+    mockSupabaseChain.gte.mockResolvedValueOnce({ count: 250, error: null })
 
     const { sendEmail } = await import('../brevo')
     const result = await sendEmail({
@@ -79,7 +77,7 @@ describe('sendEmail', () => {
   })
 
   it('refuses send when over daily cap (count > limit)', async () => {
-    mockSupabaseChain.single.mockResolvedValueOnce({ data: { count: 300 }, error: null })
+    mockSupabaseChain.gte.mockResolvedValueOnce({ count: 300, error: null })
 
     const { sendEmail } = await import('../brevo')
     const result = await sendEmail({
@@ -94,7 +92,7 @@ describe('sendEmail', () => {
   })
 
   it('includes replyTo in payload when provided', async () => {
-    mockSupabaseChain.single.mockResolvedValueOnce({ data: { count: 0 }, error: null })
+    mockSupabaseChain.gte.mockResolvedValueOnce({ count: 0, error: null })
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ messageId: 'brevo-456' }),
@@ -114,7 +112,7 @@ describe('sendEmail', () => {
   })
 
   it('omits replyTo when not provided', async () => {
-    mockSupabaseChain.single.mockResolvedValueOnce({ data: { count: 0 }, error: null })
+    mockSupabaseChain.gte.mockResolvedValueOnce({ count: 0, error: null })
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ messageId: 'brevo-789' }),
@@ -133,7 +131,7 @@ describe('sendEmail', () => {
   })
 
   it('returns API_ERROR on Brevo API failure', async () => {
-    mockSupabaseChain.single.mockResolvedValueOnce({ data: { count: 0 }, error: null })
+    mockSupabaseChain.gte.mockResolvedValueOnce({ count: 0, error: null })
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 401,

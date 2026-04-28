@@ -28,15 +28,16 @@ export async function sendEmail({
   const todayStart = new Date()
   todayStart.setUTCHours(0, 0, 0, 0)
 
-  const { data: countData } = await db
+  const { count, error: countError } = await db
     .from('outreach_logs')
-    .select('count')
+    .select('*', { count: 'exact', head: true })
     .eq('channel', 'email')
     .eq('direction', 'outbound')
     .gte('created_at', todayStart.toISOString())
-    .single()
 
-  const dailyCount = (countData as { count: number } | null)?.count ?? 0
+  if (countError) return { ok: false, reason: 'API_ERROR', status: 500 }
+
+  const dailyCount = count ?? 0
 
   if (dailyCount >= limit) {
     return { ok: false, reason: 'DAILY_LIMIT_REACHED' }
