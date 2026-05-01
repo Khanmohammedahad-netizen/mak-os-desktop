@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS personalizations (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  contact_id UUID REFERENCES mak_contacts(id) ON DELETE CASCADE,
+  contact_id UUID NOT NULL REFERENCES mak_contacts(id) ON DELETE CASCADE,
   channel TEXT NOT NULL,
   whatsapp_vars JSONB,
   email_subject TEXT,
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS personalizations (
 
 CREATE TABLE IF NOT EXISTS audit_reports (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  contact_id UUID REFERENCES mak_contacts(id) ON DELETE CASCADE,
+  contact_id UUID NOT NULL REFERENCES mak_contacts(id) ON DELETE CASCADE,
   target_company TEXT NOT NULL,
   report_text TEXT NOT NULL,
   tokens_used INTEGER,
@@ -31,6 +31,6 @@ ALTER TABLE personalizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE system_state ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY allow_all_personalizations ON personalizations FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY allow_all_audit_reports ON audit_reports FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY allow_all_system_state ON system_state FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS allow_all_personalizations ON personalizations FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS allow_all_audit_reports ON audit_reports FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS allow_all_system_state ON system_state FOR ALL USING (true) WITH CHECK (true);
