@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Users, Handshake, FileText, CheckSquare,
-  BarChart2, Cpu, Calendar, Terminal, Settings, Radio,
+  Users, Handshake, LayoutDashboard, MessageCircle,
+  Mail, Phone, Kanban, Calendar, Settings, Radio,
 } from 'lucide-react';
 import { MenuBar } from './MenuBar';
 import { Dock } from './Dock';
@@ -17,16 +17,16 @@ import { ToastContainer } from '@/components/shared/Toast';
 import { useWindowStore } from '@/stores/windowStore';
 
 const DESKTOP_APPS = [
-  { id: 'crm',       title: 'CRM — MAK OS',       icon: Users },
-  { id: 'deals',     title: 'Deals — MAK OS',      icon: Handshake },
-  { id: 'notes',     title: 'Notes — MAK OS',      icon: FileText },
-  { id: 'tasks',     title: 'Tasks — MAK OS',      icon: CheckSquare },
-  { id: 'analytics', title: 'Analytics — MAK OS',  icon: BarChart2 },
+  { id: 'dashboard', title: 'Dashboard — MAK OS',   icon: LayoutDashboard },
+  { id: 'leads',     title: 'Leads — MAK OS',       icon: Users },
   { id: 'outreach',  title: 'Outreach — MAK OS',    icon: Radio },
-  { id: 'v1',        title: 'MAK OS v1 — MAK OS',  icon: Cpu },
-  { id: 'calendar',  title: 'Calendar — MAK OS',   icon: Calendar },
-  { id: 'terminal',  title: 'Terminal — MAK OS',   icon: Terminal },
-  { id: 'settings',  title: 'Settings — MAK OS',   icon: Settings },
+  { id: 'whatsapp',  title: 'WhatsApp — MAK OS',    icon: MessageCircle },
+  { id: 'email',     title: 'Email — MAK OS',       icon: Mail },
+  { id: 'voice',     title: 'Voice Calls — MAK OS', icon: Phone },
+  { id: 'pipeline',  title: 'Pipeline — MAK OS',    icon: Kanban },
+  { id: 'crm',       title: 'CRM — MAK OS',         icon: Handshake },
+  { id: 'calendar',  title: 'Calendar — MAK OS',    icon: Calendar },
+  { id: 'settings',  title: 'Settings — MAK OS',    icon: Settings },
 ];
 
 export const Desktop = () => {
