@@ -9,6 +9,7 @@ interface DealsStore {
   setDeals: (deals: Deal[]) => void;
   setLoading: (loading: boolean) => void;
   setActiveDealId: (id: string | null) => void;
+  fetchDeals: () => Promise<void>;
   addDeal: (deal: Deal) => void;
   updateDeal: (id: string, updates: Partial<Deal>) => void;
   updateDealStage: (id: string, stage: string) => void;
@@ -23,6 +24,19 @@ export const useDealsStore = create<DealsStore>((set) => ({
   setDeals: (deals) => set({ deals }),
   setLoading: (loading) => set({ loading }),
   setActiveDealId: (activeDealId) => set({ activeDealId }),
+
+  fetchDeals: async () => {
+    set({ loading: true });
+    try {
+      const res = await fetch('/api/deals');
+      const data: unknown = await res.json();
+      set({ deals: Array.isArray(data) ? (data as Deal[]) : [] });
+    } catch (err) {
+      console.error('[dealsStore] fetchDeals failed:', err);
+    } finally {
+      set({ loading: false });
+    }
+  },
 
   addDeal: (deal) => set((state) => ({
     deals: [deal, ...state.deals],

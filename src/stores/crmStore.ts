@@ -5,10 +5,11 @@ interface CRMStore {
   contacts: Contact[];
   loading: boolean;
   activeContactId: string | null;
-  
+
   setContacts: (contacts: Contact[]) => void;
   setLoading: (loading: boolean) => void;
   setActiveContactId: (id: string | null) => void;
+  fetchContacts: () => Promise<void>;
   updateContactStatus: (id: string, status: string) => void;
   updateContact: (id: string, updates: Partial<Contact>) => void;
   addContact: (contact: Contact) => void;
@@ -23,6 +24,19 @@ export const useCRMStore = create<CRMStore>((set) => ({
   setContacts: (contacts) => set({ contacts }),
   setLoading: (loading) => set({ loading }),
   setActiveContactId: (activeContactId) => set({ activeContactId }),
+
+  fetchContacts: async () => {
+    set({ loading: true });
+    try {
+      const res = await fetch('/api/contacts');
+      const data: unknown = await res.json();
+      set({ contacts: Array.isArray(data) ? (data as Contact[]) : [] });
+    } catch (err) {
+      console.error('[crmStore] fetchContacts failed:', err);
+    } finally {
+      set({ loading: false });
+    }
+  },
 
   updateContactStatus: (id, status) => set((state) => ({
     contacts: state.contacts.map((c) =>

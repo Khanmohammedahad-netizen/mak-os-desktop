@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-server';
 import { logActivity } from '@/lib/activity';
 
 export const dynamic = 'force-dynamic';
@@ -10,8 +10,8 @@ export async function GET(req: NextRequest) {
     const folder = searchParams.get('folder');
     const search = searchParams.get('search');
 
-    let query = supabase
-      .from('mak_notes')
+    let query = supabaseAdmin
+      .from('notes')
       .select('*')
       .order('pinned', { ascending: false })
       .order('updated_at', { ascending: false });
@@ -28,26 +28,29 @@ export async function GET(req: NextRequest) {
 
     if (error) throw error;
     return NextResponse.json(data);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { data, error } = await supabase
-      .from('mak_notes')
+    const body = await req.json() as Record<string, unknown>;
+    const { data, error } = await supabaseAdmin
+      .from('notes')
       .insert(body)
       .select()
       .single();
 
     if (error) throw error;
 
-    await logActivity('note', data.id, 'created', { title: data.title });
+    const n = data as { id: string; title: string };
+    await logActivity('note', n.id, 'created', { title: n.title });
 
     return NextResponse.json(data);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

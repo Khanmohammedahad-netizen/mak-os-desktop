@@ -1,25 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-server';
 import { logActivity } from '@/lib/activity';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const { data, error } = await supabase
-      .from('mak_tasks')
-      .select('*, mak_contacts(*), mak_deals(*)')
+    const { data, error } = await supabaseAdmin
+      .from('tasks')
+      .select('*')
       .eq('id', id)
       .single();
 
     if (error) throw error;
     return NextResponse.json(data);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
@@ -29,32 +30,34 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const body = await req.json();
-    const { data, error } = await supabase
-      .from('mak_tasks')
-      .update(body)
+    const body = await req.json() as Record<string, unknown>;
+    const { data, error } = await supabaseAdmin
+      .from('tasks')
+      .update({ ...body, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
       .single();
 
     if (error) throw error;
 
-    await logActivity('task', id, body.status === 'done' ? 'completed' : 'updated', { title: data.title });
+    const t = data as { title: string; status: string };
+    await logActivity('task', id, t.status === 'done' ? 'completed' : 'updated', { title: t.title });
 
     return NextResponse.json(data);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
 export async function DELETE(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const { error } = await supabase
-      .from('mak_tasks')
+    const { error } = await supabaseAdmin
+      .from('tasks')
       .delete()
       .eq('id', id);
 
@@ -63,7 +66,8 @@ export async function DELETE(
     await logActivity('task', id, 'deleted');
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

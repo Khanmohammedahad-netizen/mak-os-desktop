@@ -6,11 +6,12 @@ interface NotesStore {
   activeNoteId: string | null;
   activeFolder: string;
   loading: boolean;
-  
+
   setNotes: (notes: Note[]) => void;
   setActiveNoteId: (id: string | null) => void;
   setActiveFolder: (folder: string) => void;
   setLoading: (loading: boolean) => void;
+  fetchNotes: () => Promise<void>;
   updateNote: (id: string, updates: Partial<Note>) => void;
   addNote: (note: Note) => void;
   deleteNote: (id: string) => void;
@@ -26,15 +27,28 @@ export const useNotesStore = create<NotesStore>((set) => ({
   setActiveNoteId: (activeNoteId) => set({ activeNoteId }),
   setActiveFolder: (activeFolder) => set({ activeFolder }),
   setLoading: (loading) => set({ loading }),
-  
+
+  fetchNotes: async () => {
+    set({ loading: true });
+    try {
+      const res = await fetch('/api/notes');
+      const data: unknown = await res.json();
+      set({ notes: Array.isArray(data) ? (data as Note[]) : [] });
+    } catch (err) {
+      console.error('[notesStore] fetchNotes failed:', err);
+    } finally {
+      set({ loading: false });
+    }
+  },
+
   updateNote: (id, updates) => set((state) => ({
-    notes: state.notes.map((n) => 
+    notes: state.notes.map((n) =>
       n.id === id ? { ...n, ...updates, updated_at: new Date().toISOString() } : n
-    )
+    ),
   })),
 
   addNote: (note) => set((state) => ({
-    notes: [note, ...state.notes]
+    notes: [note, ...state.notes],
   })),
 
   deleteNote: (id) => set((state) => ({

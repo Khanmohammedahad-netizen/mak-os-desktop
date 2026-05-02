@@ -1,25 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-server';
 import { logActivity } from '@/lib/activity';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const { data, error } = await supabase
-      .from('mak_contacts')
+    const { data, error } = await supabaseAdmin
+      .from('contacts')
       .select('*')
       .eq('id', id)
       .single();
 
     if (error) throw error;
     return NextResponse.json(data);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
@@ -29,10 +30,10 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const body = await req.json();
-    const { data, error } = await supabase
-      .from('mak_contacts')
-      .update(body)
+    const body = await req.json() as Record<string, unknown>;
+    const { data, error } = await supabaseAdmin
+      .from('contacts')
+      .update({ ...body, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
       .single();
@@ -42,19 +43,20 @@ export async function PATCH(
     await logActivity('contact', id, 'updated', { changes: Object.keys(body) });
 
     return NextResponse.json(data);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
 export async function DELETE(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const { error } = await supabase
-      .from('mak_contacts')
+    const { error } = await supabaseAdmin
+      .from('contacts')
       .delete()
       .eq('id', id);
 
@@ -63,7 +65,8 @@ export async function DELETE(
     await logActivity('contact', id, 'deleted');
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

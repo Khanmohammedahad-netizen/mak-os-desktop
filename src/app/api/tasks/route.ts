@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-server';
 import { logActivity } from '@/lib/activity';
 
 export const dynamic = 'force-dynamic';
@@ -10,9 +10,9 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status');
     const priority = searchParams.get('priority');
 
-    let query = supabase
-      .from('mak_tasks')
-      .select('*, mak_contacts(name), mak_deals(title)')
+    let query = supabaseAdmin
+      .from('tasks')
+      .select('*')
       .order('due_date', { ascending: true, nullsFirst: false });
 
     if (status && status !== 'all') {
@@ -27,26 +27,29 @@ export async function GET(req: NextRequest) {
 
     if (error) throw error;
     return NextResponse.json(data);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { data, error } = await supabase
-      .from('mak_tasks')
+    const body = await req.json() as Record<string, unknown>;
+    const { data, error } = await supabaseAdmin
+      .from('tasks')
       .insert(body)
       .select()
       .single();
 
     if (error) throw error;
 
-    await logActivity('task', data.id, 'created', { title: data.title });
+    const t = data as { id: string; title: string };
+    await logActivity('task', t.id, 'created', { title: t.title });
 
     return NextResponse.json(data);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

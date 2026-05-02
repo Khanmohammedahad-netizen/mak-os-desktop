@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabaseAdmin } from './supabase-server';
 import { EntityType } from '@/types';
 
 export async function logActivity(
@@ -7,14 +7,14 @@ export async function logActivity(
   action: string,
   details?: Record<string, unknown>
 ) {
-  const { error } = await supabase.from('mak_activity_log').insert({
+  const { error } = await supabaseAdmin.from('activity').insert({
     entity_type,
     entity_id,
     action,
-    details
+    details: details ?? {},
   });
-  
+
   if (error) {
-    console.error('Failed to log activity:', error);
+    console.error('[activity] Failed to log:', error.message);
   }
 }

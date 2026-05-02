@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,16 +10,16 @@ export async function GET(req: NextRequest) {
     switch (type) {
       case 'overview': {
         const [{ data: contacts }, { data: deals }] = await Promise.all([
-          supabase.from('mak_contacts').select('id'),
-          supabase.from('mak_deals').select('id, stage, value'),
+          supabaseAdmin.from('contacts').select('id'),
+          supabaseAdmin.from('deals').select('id, stage, value'),
         ]);
-        const active = deals?.filter((d) => !['Closed Won', 'Closed Lost'].includes(d.stage)) ?? [];
-        const won = deals?.filter((d) => d.stage === 'Closed Won') ?? [];
-        const lost = deals?.filter((d) => d.stage === 'Closed Lost') ?? [];
+        const active = deals?.filter((d) => !['won', 'lost', 'Closed Won', 'Closed Lost'].includes(d.stage)) ?? [];
+        const won = deals?.filter((d) => ['won', 'Closed Won'].includes(d.stage)) ?? [];
+        const lost = deals?.filter((d) => ['lost', 'Closed Lost'].includes(d.stage)) ?? [];
         return NextResponse.json({
           totalContacts: contacts?.length ?? 0,
           activeDeals: active.length,
-          pipelineValue: active.reduce((s, d) => s + (d.value ?? 0), 0),
+          pipelineValue: active.reduce((s, d) => s + (Number(d.value) || 0), 0),
           winRate:
             won.length + lost.length > 0
               ? (won.length / (won.length + lost.length)) * 100
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
       }
 
       case 'contacts-by-status': {
-        const { data } = await supabase.from('mak_contacts').select('status');
+        const { data } = await supabaseAdmin.from('contacts').select('status');
         const groups: Record<string, number> = {};
         data?.forEach((c) => { groups[c.status] = (groups[c.status] || 0) + 1; });
         return NextResponse.json(
@@ -37,12 +37,12 @@ export async function GET(req: NextRequest) {
       }
 
       case 'deals-by-stage': {
-        const { data } = await supabase.from('mak_deals').select('stage, value');
+        const { data } = await supabaseAdmin.from('deals').select('stage, value');
         const groups: Record<string, { count: number; value: number }> = {};
         data?.forEach((d) => {
           if (!groups[d.stage]) groups[d.stage] = { count: 0, value: 0 };
           groups[d.stage].count++;
-          groups[d.stage].value += d.value ?? 0;
+          groups[d.stage].value += Number(d.value) || 0;
         });
         return NextResponse.json(
           Object.entries(groups).map(([stage, { count, value }]) => ({ stage, count, value }))
@@ -52,15 +52,15 @@ export async function GET(req: NextRequest) {
       case 'pipeline-history': {
         const since = new Date();
         since.setMonth(since.getMonth() - 6);
-        const { data } = await supabase
-          .from('mak_deals')
+        const { data } = await supabaseAdmin
+          .from('deals')
           .select('value, created_at')
           .gte('created_at', since.toISOString());
 
         const monthMap: Record<string, number> = {};
         data?.forEach((d) => {
           const key = new Date(d.created_at).toLocaleString('en-US', { year: '2-digit', month: 'short' });
-          monthMap[key] = (monthMap[key] || 0) + (d.value ?? 0);
+          monthMap[key] = (monthMap[key] || 0) + (Number(d.value) || 0);
         });
 
         const result = [];
@@ -77,9 +77,12 @@ export async function GET(req: NextRequest) {
       }
 
       case 'lead-sources': {
-        const { data } = await supabase.from('mak_contacts').select('source');
+        const { data } = await supabaseAdmin.from('contacts').select('source');
         const groups: Record<string, number> = {};
-        data?.forEach((c) => { groups[c.source] = (groups[c.source] || 0) + 1; });
+        data?.forEach((c) => {
+          const src = c.source || 'Unknown';
+          groups[src] = (groups[src] || 0) + 1;
+        });
         return NextResponse.json(
           Object.entries(groups).map(([source, count]) => ({ source, count }))
         );
@@ -88,8 +91,8 @@ export async function GET(req: NextRequest) {
       case 'activity-timeline': {
         const since = new Date();
         since.setDate(since.getDate() - 30);
-        const { data } = await supabase
-          .from('mak_activity_log')
+        const { data } = await supabaseAdmin
+          .from('activity')
           .select('created_at')
           .gte('created_at', since.toISOString());
 
