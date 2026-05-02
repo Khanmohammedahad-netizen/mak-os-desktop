@@ -4,6 +4,13 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
+function isAuthorized(req: NextRequest): boolean {
+  const secret = process.env.CRON_SECRET
+  if (!secret) return true // no secret configured = open (dev only)
+  const auth = req.headers.get('authorization') ?? ''
+  return auth === `Bearer ${secret}`
+}
+
 const AGENT_ROUTES: Record<string, string> = {
   ResearchAgent: '/api/agents/research',
   EnrichmentAgent: '/api/agents/enrichment',
@@ -23,6 +30,10 @@ const AGENT_ROUTES: Record<string, string> = {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isAuthorized(req)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const now = new Date().toISOString()
   const appUrl = process.env.APP_URL ?? `https://${process.env.VERCEL_URL}`
 
