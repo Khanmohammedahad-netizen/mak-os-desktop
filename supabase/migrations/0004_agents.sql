@@ -31,6 +31,11 @@ ALTER TABLE personalizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE system_state ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS allow_all_personalizations ON personalizations FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS allow_all_audit_reports ON audit_reports FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS allow_all_system_state ON system_state FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS allow_all_personalizations ON personalizations;
+CREATE POLICY allow_all_personalizations ON personalizations FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS allow_all_audit_reports ON audit_reports;
+CREATE POLICY allow_all_audit_reports ON audit_reports FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS allow_all_system_state ON system_state;
+CREATE POLICY allow_all_system_state ON system_state FOR ALL USING (true) WITH CHECK (true);
