@@ -6,11 +6,17 @@ export class ChannelDisabledError extends Error {
   }
 }
 
+export interface CallResult {
+  ok: boolean
+  callId?: string
+  errorMessage?: string
+}
+
 export async function triggerCall(_args: {
   to: string
   contactId: string
   scriptOrPathway: string
   leadContext: Record<string, unknown>
-}): Promise<never> {
+}): Promise<CallResult> {
   throw new ChannelDisabledError()
 }
