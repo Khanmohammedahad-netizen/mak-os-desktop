@@ -13,7 +13,8 @@ const AnalyticsApp = dynamic(() => import('../apps/analytics/AnalyticsApp').then
 const CalendarApp = dynamic(() => import('../apps/calendar/CalendarApp').then((m) => ({ default: m.CalendarApp })), { ssr: false });
 const TerminalApp = dynamic(() => import('../apps/terminal/TerminalApp').then((m) => ({ default: m.TerminalApp })), { ssr: false });
 const SettingsApp = dynamic(() => import('../apps/settings/SettingsApp').then((m) => ({ default: m.SettingsApp })), { ssr: false });
-const MakOSv1App  = dynamic(() => import('../apps/mak-os-v1/MakOSv1App').then((m) => ({ default: m.MakOSv1App })), { ssr: false });
+const MakOSv1App    = dynamic(() => import('../apps/mak-os-v1/MakOSv1App').then((m) => ({ default: m.MakOSv1App })), { ssr: false });
+const OutreachApp   = dynamic(() => import('../apps/outreach/OutreachApp').then((m) => ({ default: m.OutreachApp })), { ssr: false });
 
 const renderApp = (id: string) => {
   switch (id) {
@@ -25,6 +26,7 @@ const renderApp = (id: string) => {
     case 'calendar':  return <CalendarApp />;
     case 'terminal':  return <TerminalApp />;
     case 'settings':  return <SettingsApp />;
+    case 'outreach':  return <OutreachApp />;
     case 'v1':        return <MakOSv1App />;
     default:          return null;
   }

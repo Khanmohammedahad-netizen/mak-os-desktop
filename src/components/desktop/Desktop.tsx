@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Users, Handshake, FileText, CheckSquare,
-  BarChart2, Cpu, Calendar, Terminal, Settings,
+  BarChart2, Cpu, Calendar, Terminal, Settings, Radio,
 } from 'lucide-react';
 import { MenuBar } from './MenuBar';
 import { Dock } from './Dock';
@@ -22,6 +22,7 @@ const DESKTOP_APPS = [
   { id: 'notes',     title: 'Notes — MAK OS',      icon: FileText },
   { id: 'tasks',     title: 'Tasks — MAK OS',      icon: CheckSquare },
   { id: 'analytics', title: 'Analytics — MAK OS',  icon: BarChart2 },
+  { id: 'outreach',  title: 'Outreach — MAK OS',    icon: Radio },
   { id: 'v1',        title: 'MAK OS v1 — MAK OS',  icon: Cpu },
   { id: 'calendar',  title: 'Calendar — MAK OS',   icon: Calendar },
   { id: 'terminal',  title: 'Terminal — MAK OS',   icon: Terminal },
