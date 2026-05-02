@@ -10,6 +10,14 @@ CREATE TABLE IF NOT EXISTS dnc_list (
 ALTER TABLE dnc_list ENABLE ROW LEVEL SECURITY;
 CREATE POLICY allow_all_dnc_list ON dnc_list FOR ALL USING (true) WITH CHECK (true);
 
+-- Add missing columns to outreach_logs if table pre-existed from v1
+ALTER TABLE outreach_logs ADD COLUMN IF NOT EXISTS direction TEXT;
+ALTER TABLE outreach_logs ADD COLUMN IF NOT EXISTS body TEXT;
+ALTER TABLE outreach_logs ADD COLUMN IF NOT EXISTS twilio_sid TEXT;
+ALTER TABLE outreach_logs ADD COLUMN IF NOT EXISTS brevo_id TEXT;
+ALTER TABLE outreach_logs ADD COLUMN IF NOT EXISTS bland_call_id TEXT;
+ALTER TABLE outreach_logs ADD COLUMN IF NOT EXISTS metadata JSONB;
+
 -- Index for fast inbound message lookups (used by compliance gate)
 CREATE INDEX IF NOT EXISTS idx_outreach_logs_inbound
   ON outreach_logs(contact_id, created_at)
