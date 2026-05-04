@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Users, Handshake, LayoutDashboard, MessageCircle,
-  Mail, Phone, Kanban, Calendar, Settings, Radio,
+  Search, ScanSearch, Send, Kanban,
+  BarChart3, Settings,
 } from 'lucide-react';
 import { MenuBar } from './MenuBar';
 import { Dock } from './Dock';
@@ -17,16 +17,12 @@ import { ToastContainer } from '@/components/shared/Toast';
 import { useWindowStore } from '@/stores/windowStore';
 
 const DESKTOP_APPS = [
-  { id: 'dashboard', title: 'Dashboard — MAK OS',   icon: LayoutDashboard },
-  { id: 'leads',     title: 'Leads — MAK OS',       icon: Users },
-  { id: 'outreach',  title: 'Outreach — MAK OS',    icon: Radio },
-  { id: 'whatsapp',  title: 'WhatsApp — MAK OS',    icon: MessageCircle },
-  { id: 'email',     title: 'Email — MAK OS',       icon: Mail },
-  { id: 'voice',     title: 'Voice Calls — MAK OS', icon: Phone },
-  { id: 'pipeline',  title: 'Pipeline — MAK OS',    icon: Kanban },
-  { id: 'crm',       title: 'CRM — MAK OS',         icon: Handshake },
-  { id: 'calendar',  title: 'Calendar — MAK OS',    icon: Calendar },
-  { id: 'settings',  title: 'Settings — MAK OS',    icon: Settings },
+  { id: 'lead-mine',      title: 'Lead Mine — MAK OS',      icon: Search },
+  { id: 'lead-audit',     title: 'Lead Audit — MAK OS',     icon: ScanSearch },
+  { id: 'outreach',       title: 'Outreach — MAK OS',       icon: Send },
+  { id: 'pipeline',       title: 'Pipeline — MAK OS',       icon: Kanban },
+  { id: 'command-center', title: 'Command Center — MAK OS', icon: BarChart3 },
+  { id: 'settings',       title: 'Settings — MAK OS',       icon: Settings },
 ];
 
 export const Desktop = () => {

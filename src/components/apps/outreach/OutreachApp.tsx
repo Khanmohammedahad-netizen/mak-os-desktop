@@ -1,418 +1,212 @@
-"use client";
-
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Send, ListChecks, MessageSquare, Loader2,
-  CheckCircle2, XCircle, Clock, Zap, RefreshCw,
-  ChevronRight,
-} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Send, Mail, MessageSquare, Phone, Wand2, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/lib/supabase';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface AgentJob {
-  id: string
-  agent: string
-  status: string
-  attempts: number
-  created_at: string
-  updated_at: string
-}
-
-interface OutreachLog {
-  id: string
-  channel: string
-  direction: string
-  status: string
-  body: string | null
-  created_at: string
-  contact_id: string | null
-}
-
-interface QueueStats {
-  pending: number
-  running: number
-  done: number
-  failed: number
-}
-
-type Tab = 'command' | 'queue' | 'logs'
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const STATUS_COLORS: Record<string, string> = {
-  pending:  'text-amber-400 bg-amber-400/10 border-amber-400/20',
-  running:  'text-blue-400 bg-blue-400/10 border-blue-400/20',
-  done:     'text-green-400 bg-green-400/10 border-green-400/20',
-  failed:   'text-red-400 bg-red-400/10 border-red-400/20',
-  retry:    'text-orange-400 bg-orange-400/10 border-orange-400/20',
-}
-
-const CHANNEL_ICONS: Record<string, string> = {
-  email:    '✉',
-  whatsapp: '💬',
-  voice:    '📞',
-}
-
-function StatusPill({ status }: { status: string }) {
-  return (
-    <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-semibold border', STATUS_COLORS[status] ?? 'text-text-secondary bg-white/5 border-white/10')}>
-      {status}
-    </span>
-  )
-}
-
-function StatBox({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center py-3 bg-white/3 rounded-xl border border-gold/5">
-      <span className={cn('text-2xl font-bold tabular-nums', color)}>{value}</span>
-      <span className="text-[10px] text-text-secondary mt-0.5 uppercase tracking-wider">{label}</span>
-    </div>
-  )
-}
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const s = Math.floor(diff / 1000)
-  if (s < 60) return `${s}s ago`
-  const m = Math.floor(s / 60)
-  if (m < 60) return `${m}m ago`
-  const h = Math.floor(m / 60)
-  return `${h}h ago`
-}
-
-// ─── Command Tab ──────────────────────────────────────────────────────────────
-
-function CommandTab() {
-  const [goal, setGoal] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<{ jobId: string } | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [history, setHistory] = useState<string[]>([])
-
-  const launch = useCallback(async () => {
-    const trimmed = goal.trim()
-    if (!trimmed || loading) return
-    setLoading(true)
-    setResult(null)
-    setError(null)
-
-    try {
-      const res = await fetch('/api/orchestrator', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ goal: trimmed }),
-      })
-      const data = await res.json() as { job_id?: string; error?: string }
-      if (!res.ok || !data.job_id) {
-        setError(data.error ?? `HTTP ${res.status}`)
-      } else {
-        setResult({ jobId: data.job_id })
-        setHistory((prev) => [trimmed, ...prev].slice(0, 5))
-        setGoal('')
-      }
-    } catch (err) {
-      setError((err as Error).message)
-    } finally {
-      setLoading(false)
-    }
-  }, [goal, loading])
-
-  const handleKey = (e: React.KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') launch()
-  }
-
-  return (
-    <div className="flex flex-col h-full p-5 gap-4">
-      {/* Input */}
-      <div className="flex flex-col gap-2">
-        <label className="text-[11px] font-semibold text-text-secondary uppercase tracking-widest">
-          Outreach Goal
-        </label>
-        <textarea
-          value={goal}
-          onChange={(e) => setGoal(e.target.value)}
-          onKeyDown={handleKey}
-          placeholder="e.g. Find 50 restaurants in Dubai and send cold outreach"
-          rows={4}
-          className="w-full bg-white/5 border border-gold/20 rounded-xl px-4 py-3 text-sm text-text-primary placeholder-text-secondary/40 resize-none focus:outline-none focus:ring-1 focus:ring-gold/40 transition-all"
-        />
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] text-text-secondary/50">⌘↩ to launch</span>
-          <button
-            onClick={launch}
-            disabled={loading || !goal.trim()}
-            className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold transition-all',
-              'bg-gold/15 border border-gold/30 text-gold hover:bg-gold/25',
-              (loading || !goal.trim()) && 'opacity-40 cursor-not-allowed'
-            )}
-          >
-            {loading ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
-            Launch Mission
-          </button>
-        </div>
-      </div>
-
-      {/* Result banner */}
-      {result && (
-        <div className="flex items-start gap-3 p-3 rounded-xl bg-green-500/10 border border-green-500/20">
-          <CheckCircle2 size={16} className="text-green-400 flex-shrink-0 mt-0.5" />
-          <div className="min-w-0">
-            <p className="text-[13px] font-medium text-green-400">Mission launched</p>
-            <p className="text-[11px] text-text-secondary mt-0.5 font-mono truncate">job: {result.jobId}</p>
-          </div>
-        </div>
-      )}
-
-      {error && (
-        <div className="flex items-start gap-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
-          <XCircle size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
-          <p className="text-[13px] text-red-400">{error}</p>
-        </div>
-      )}
-
-      {/* History */}
-      {history.length > 0 && (
-        <div className="flex flex-col gap-1.5">
-          <p className="text-[10px] font-semibold text-text-secondary/60 uppercase tracking-widest">Recent Goals</p>
-          {history.map((g, i) => (
-            <button
-              key={i}
-              onClick={() => setGoal(g)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-left text-[12px] text-text-secondary hover:text-text-primary hover:bg-white/5 transition-all group"
-            >
-              <ChevronRight size={12} className="flex-shrink-0 opacity-40 group-hover:opacity-100" />
-              <span className="truncate">{g}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Tip */}
-      {history.length === 0 && !result && !error && (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center space-y-2">
-            <Send size={28} className="text-gold/20 mx-auto" />
-            <p className="text-[12px] text-text-secondary/50 max-w-[240px]">
-              Describe an outreach goal. The AI decomposes it into a research query, finds leads, enriches them, and sends personalized messages autonomously.
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── Queue Tab ────────────────────────────────────────────────────────────────
-
-function QueueTab() {
-  const [jobs, setJobs] = useState<AgentJob[]>([])
-  const [stats, setStats] = useState<QueueStats>({ pending: 0, running: 0, done: 0, failed: 0 })
-  const [loading, setLoading] = useState(true)
-  const [lastRefresh, setLastRefresh] = useState(Date.now())
-
-  const fetchJobs = useCallback(async () => {
-    const { data } = await supabase
-      .from('agent_jobs')
-      .select('id, agent, status, attempts, created_at, updated_at')
-      .order('created_at', { ascending: false })
-      .limit(50)
-
-    const rows = (data ?? []) as AgentJob[]
-    setJobs(rows)
-    setStats({
-      pending: rows.filter((j) => j.status === 'pending').length,
-      running: rows.filter((j) => j.status === 'running').length,
-      done:    rows.filter((j) => j.status === 'done').length,
-      failed:  rows.filter((j) => j.status === 'failed').length,
-    })
-    setLoading(false)
-    setLastRefresh(Date.now())
-  }, [])
-
-  useEffect(() => {
-    fetchJobs()
-    const interval = setInterval(fetchJobs, 10_000)
-    return () => clearInterval(interval)
-  }, [fetchJobs])
-
-  return (
-    <div className="flex flex-col h-full">
-      {/* Stats row */}
-      <div className="flex gap-2 p-4 flex-shrink-0">
-        <StatBox label="Pending" value={stats.pending} color="text-amber-400" />
-        <StatBox label="Running" value={stats.running} color="text-blue-400" />
-        <StatBox label="Done"    value={stats.done}    color="text-green-400" />
-        <StatBox label="Failed"  value={stats.failed}  color="text-red-400" />
-      </div>
-
-      {/* Refresh line */}
-      <div className="flex items-center justify-between px-4 pb-2 flex-shrink-0">
-        <span className="text-[10px] text-text-secondary/40">Refreshes every 10s · {jobs.length} jobs</span>
-        <button onClick={fetchJobs} className="flex items-center gap-1 text-[10px] text-text-secondary/50 hover:text-gold transition-colors">
-          <RefreshCw size={10} />
-          {timeAgo(new Date(lastRefresh).toISOString())}
-        </button>
-      </div>
-
-      {/* Job list */}
-      <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-1">
-        {loading && (
-          <div className="flex items-center justify-center h-24">
-            <Loader2 size={18} className="text-gold/40 animate-spin" />
-          </div>
-        )}
-        {!loading && jobs.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-24 gap-2">
-            <Clock size={20} className="text-gold/20" />
-            <p className="text-[12px] text-text-secondary/40">No jobs yet. Launch a mission.</p>
-          </div>
-        )}
-        {jobs.map((job) => (
-          <div key={job.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-white/3 border border-gold/5 hover:border-gold/15 transition-all">
-            <StatusPill status={job.status} />
-            <span className="flex-1 text-[12px] text-text-primary font-mono truncate">{job.agent}</span>
-            <span className="text-[10px] text-text-secondary/50 flex-shrink-0">{timeAgo(job.created_at)}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ─── Logs Tab ─────────────────────────────────────────────────────────────────
-
-function LogsTab() {
-  const [logs, setLogs] = useState<OutreachLog[]>([])
-  const [loading, setLoading] = useState(true)
-  const [channelFilter, setChannelFilter] = useState<string>('all')
-  const [lastRefresh, setLastRefresh] = useState(Date.now())
-
-  const fetchLogs = useCallback(async () => {
-    let query = supabase
-      .from('outreach_logs')
-      .select('id, channel, direction, status, body, created_at, contact_id')
-      .order('created_at', { ascending: false })
-      .limit(100)
-
-    if (channelFilter !== 'all') {
-      query = query.eq('channel', channelFilter)
-    }
-
-    const { data } = await query
-    setLogs((data ?? []) as OutreachLog[])
-    setLoading(false)
-    setLastRefresh(Date.now())
-  }, [channelFilter])
-
-  useEffect(() => {
-    fetchLogs()
-    const interval = setInterval(fetchLogs, 10_000)
-    return () => clearInterval(interval)
-  }, [fetchLogs])
-
-  const CHANNELS = ['all', 'email', 'whatsapp', 'voice']
-
-  return (
-    <div className="flex flex-col h-full">
-      {/* Filters */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-gold/5 flex-shrink-0">
-        {CHANNELS.map((ch) => (
-          <button
-            key={ch}
-            onClick={() => setChannelFilter(ch)}
-            className={cn(
-              'px-3 py-1 rounded-full text-[11px] font-medium border transition-all',
-              channelFilter === ch
-                ? 'bg-gold/20 border-gold/30 text-gold'
-                : 'bg-transparent border-gold/10 text-text-secondary hover:border-gold/20 hover:text-text-primary'
-            )}
-          >
-            {ch === 'all' ? 'All' : `${CHANNEL_ICONS[ch] ?? ''} ${ch}`}
-          </button>
-        ))}
-        <div className="flex-1" />
-        <button onClick={fetchLogs} className="flex items-center gap-1 text-[10px] text-text-secondary/50 hover:text-gold transition-colors">
-          <RefreshCw size={10} />
-          {timeAgo(new Date(lastRefresh).toISOString())}
-        </button>
-      </div>
-
-      {/* Log list */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-1">
-        {loading && (
-          <div className="flex items-center justify-center h-24">
-            <Loader2 size={18} className="text-gold/40 animate-spin" />
-          </div>
-        )}
-        {!loading && logs.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-24 gap-2">
-            <MessageSquare size={20} className="text-gold/20" />
-            <p className="text-[12px] text-text-secondary/40">No outreach logs yet.</p>
-          </div>
-        )}
-        {logs.map((log) => (
-          <div key={log.id} className="flex items-start gap-3 px-3 py-2.5 rounded-lg bg-white/3 border border-gold/5 hover:border-gold/15 transition-all">
-            <span className="text-base flex-shrink-0 mt-0.5">{CHANNEL_ICONS[log.channel] ?? '📨'}</span>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-[11px] font-semibold text-text-secondary uppercase">{log.channel}</span>
-                <span className="text-[10px] text-text-secondary/40">{log.direction}</span>
-                <StatusPill status={log.status} />
-              </div>
-              {log.body && (
-                <p className="text-[12px] text-text-secondary truncate">{log.body}</p>
-              )}
-            </div>
-            <span className="text-[10px] text-text-secondary/40 flex-shrink-0 mt-0.5">{timeAgo(log.created_at)}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ─── Main App ─────────────────────────────────────────────────────────────────
-
-const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
-  { id: 'command', label: 'Command',   icon: Send },
-  { id: 'queue',   label: 'Queue',     icon: ListChecks },
-  { id: 'logs',    label: 'Logs',      icon: MessageSquare },
-]
+import { useOutreachStore } from '@/stores/outreachStore';
+import { Lead } from '@/stores/leadMineStore';
 
 export const OutreachApp = () => {
-  const [tab, setTab] = useState<Tab>('command')
+  const { auditedLeads, fetchAuditedLeads, isLoading } = useOutreachStore();
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+
+  useEffect(() => {
+    fetchAuditedLeads();
+  }, [fetchAuditedLeads]);
+
+  useEffect(() => {
+    if (auditedLeads.length > 0 && !selectedLead) {
+      setSelectedLead(auditedLeads[0]);
+    }
+  }, [auditedLeads, selectedLead]);
 
   return (
-    <div className="flex flex-col h-full bg-bg-surface/30">
-      {/* Tab bar */}
-      <div className="flex items-center px-5 border-b border-gold/10 bg-white/3 flex-shrink-0">
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={cn(
-              'relative flex items-center gap-2 px-4 py-3 text-[13px] font-medium transition-colors',
-              tab === id ? 'text-gold' : 'text-text-secondary hover:text-text-primary'
-            )}
-          >
-            <Icon size={14} />
-            {label}
-            {tab === id && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gold rounded-t-full" />
-            )}
-          </button>
-        ))}
+    <div className="flex h-full w-full bg-bg-primary text-text-primary overflow-hidden">
+      <div className="w-80 border-r border-gold/10 bg-bg-surface/30 flex flex-col">
+        <div className="p-4 border-b border-white/5">
+          <h2 className="text-xl font-display text-gold flex items-center gap-2">
+            <Send className="w-5 h-5" />
+            Outreach Queue
+          </h2>
+          <div className="text-sm text-text-secondary mt-1">{auditedLeads.length} leads ready to contact</div>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+          {isLoading ? (
+            <div className="p-4 text-sm text-text-secondary text-center">Loading queue...</div>
+          ) : auditedLeads.length === 0 ? (
+            <div className="p-4 text-sm text-text-secondary text-center">Queue is empty</div>
+          ) : (
+            auditedLeads.map((lead) => (
+              <button
+                key={lead.id}
+                onClick={() => setSelectedLead(lead)}
+                className={cn(
+                  "w-full text-left p-3 rounded-lg transition-colors border",
+                  selectedLead?.id === lead.id 
+                    ? "bg-gold/10 border-gold/30" 
+                    : "bg-transparent border-transparent hover:bg-white/5 hover:border-white/10"
+                )}
+              >
+                <div className="font-medium text-white truncate text-sm">{lead.business_name}</div>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className={cn(
+                    "text-xs px-1.5 py-0.5 rounded font-bold",
+                    lead.lead_score >= 61 ? "bg-green-500/20 text-green-400" : lead.lead_score >= 31 ? "bg-amber-500/20 text-amber-400" : "bg-red-500/20 text-red-400"
+                  )}>
+                    {lead.lead_score}
+                  </span>
+                  <span className="text-xs text-text-secondary truncate">{lead.category}</span>
+                </div>
+              </button>
+            ))
+          )}
+        </div>
       </div>
 
-      {/* Tab content */}
-      <div className="flex-1 overflow-hidden">
-        {tab === 'command' && <CommandTab />}
-        {tab === 'queue'   && <QueueTab />}
-        {tab === 'logs'    && <LogsTab />}
+      <div className="flex-1 overflow-y-auto bg-black p-6">
+        {selectedLead ? (
+          <OutreachWorkspace lead={selectedLead} onSendComplete={() => setSelectedLead(null)} />
+        ) : (
+          <div className="h-full flex flex-col items-center justify-center text-text-secondary">
+            <Send className="w-12 h-12 mb-4 opacity-20" />
+            <p>Select a lead to begin outreach</p>
+          </div>
+        )}
       </div>
     </div>
-  )
-}
+  );
+};
+
+const OutreachWorkspace = ({ lead, onSendComplete }: { lead: Lead, onSendComplete: () => void }) => {
+  const { isGenerating, currentMessage, generateMessage, isSending, sendMessage } = useOutreachStore();
+  const [channel, setChannel] = useState<'email' | 'whatsapp' | 'call'>('email');
+  const [editableMessage, setEditableMessage] = useState('');
+
+  useEffect(() => {
+    setEditableMessage(currentMessage);
+  }, [currentMessage]);
+
+  const auditData = lead.audit_data as any;
+
+  const handleSend = async () => {
+    if (!editableMessage) return;
+    await sendMessage(lead.id, channel, editableMessage);
+    onSendComplete();
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto flex flex-col gap-6">
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-display text-white">{lead.business_name}</h1>
+          <div className="flex items-center gap-4 mt-2">
+            {lead.email && <div className="text-sm text-text-secondary flex items-center gap-1"><Mail className="w-3.5 h-3.5" /> {lead.email}</div>}
+            {lead.phone_normalized && <div className="text-sm text-text-secondary flex items-center gap-1"><MessageSquare className="w-3.5 h-3.5" /> {lead.phone_normalized}</div>}
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="text-xs text-text-secondary uppercase tracking-wider mb-1">Audit Score</div>
+          <div className={cn(
+            "text-3xl font-bold font-display",
+            lead.lead_score >= 61 ? "text-green-400" : lead.lead_score >= 31 ? "text-amber-400" : "text-red-400"
+          )}>{lead.lead_score}/100</div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-6">
+        {/* Left Column: Context */}
+        <div className="col-span-1 flex flex-col gap-4">
+          <div className="bg-[#111] border border-[#222] rounded-xl p-4">
+            <h3 className="text-sm font-medium text-white mb-3">Audit Highlights</h3>
+            {auditData ? (
+              <ul className="space-y-2 text-sm text-text-secondary">
+                {auditData.pain_points?.map((point: string, i: number) => (
+                  <li key={i} className="flex gap-2">
+                    <ArrowRight className="w-4 h-4 text-gold shrink-0 mt-0.5" />
+                    <span>{point}</span>
+                  </li>
+                ))}
+                {auditData.pain_points?.length === 0 && <li>No specific pain points detected.</li>}
+              </ul>
+            ) : (
+              <div className="text-sm text-text-secondary">No audit data available.</div>
+            )}
+          </div>
+
+          <div className="bg-[#111] border border-[#222] rounded-xl p-4">
+            <h3 className="text-sm font-medium text-white mb-3">Channel</h3>
+            <div className="flex flex-col gap-2">
+              <ChannelButton 
+                active={channel === 'email'} 
+                onClick={() => setChannel('email')}
+                icon={<Mail className="w-4 h-4" />} 
+                label="Email" 
+                available={!!lead.email}
+              />
+              <ChannelButton 
+                active={channel === 'whatsapp'} 
+                onClick={() => setChannel('whatsapp')}
+                icon={<MessageSquare className="w-4 h-4" />} 
+                label="WhatsApp" 
+                available={!!lead.phone_normalized}
+              />
+              <ChannelButton 
+                active={channel === 'call'} 
+                onClick={() => setChannel('call')}
+                icon={<Phone className="w-4 h-4" />} 
+                label="AI Voice Call" 
+                available={!!lead.phone_normalized}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Composer */}
+        <div className="col-span-2 flex flex-col gap-4">
+          <div className="bg-[#111] border border-[#222] rounded-xl p-6 flex flex-col gap-4 h-full">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium text-white">Message Composer</h3>
+              <button 
+                onClick={() => generateMessage(lead.id)}
+                disabled={isGenerating}
+                className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white px-3 py-1.5 rounded-lg text-sm transition-colors border border-white/10"
+              >
+                <Wand2 className={cn("w-4 h-4 text-gold", isGenerating && "animate-spin")} />
+                {isGenerating ? 'Generating...' : 'AI Generate'}
+              </button>
+            </div>
+
+            <textarea
+              value={editableMessage}
+              onChange={e => setEditableMessage(e.target.value)}
+              placeholder="Click 'AI Generate' or start typing your message..."
+              className="flex-1 bg-black border border-[#333] rounded-lg p-4 text-sm text-white resize-none focus:border-gold/50 outline-none"
+            />
+
+            <button 
+              onClick={handleSend}
+              disabled={isSending || !editableMessage}
+              className="w-full flex items-center justify-center gap-2 bg-gold text-black font-medium py-3 rounded-lg hover:bg-gold/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Send className="w-4 h-4" />
+              {isSending ? 'Sending...' : `Send via ${channel}`}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ChannelButton = ({ active, onClick, icon, label, available }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string, available: boolean }) => (
+  <button 
+    onClick={onClick}
+    disabled={!available}
+    className={cn(
+      "w-full flex items-center gap-3 p-3 rounded-lg text-sm font-medium transition-colors border",
+      active ? "bg-gold/10 border-gold/30 text-white" : "bg-black border-[#333] text-text-secondary hover:bg-white/5 hover:border-white/10",
+      !available && "opacity-50 cursor-not-allowed hover:bg-black hover:border-[#333]"
+    )}
+  >
+    {icon} {label} {!available && <span className="ml-auto text-xs opacity-50">Unavailable</span>}
+  </button>
+);

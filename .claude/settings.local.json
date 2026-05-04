@@ -11,7 +11,31 @@
       "Bash(git *)",
       "Bash(npx next *)",
       "Bash(vercel --version)",
-      "Bash(gh auth *)"
+      "Bash(gh auth *)",
+      "Bash(gh repo *)",
+      "Bash(vercel --yes --prod)",
+      "Bash(vercel link *)",
+      "Bash(vercel env *)",
+      "Bash(vercel --prod --scope khanmohammedahad-5563s-projects --yes)",
+      "Bash(npx antigravity-awesome-skills *)",
+      "Read(//c/Users/ahad/.claude/skills/**)",
+      "Read(//c/Users/ahad/.claude/skills/vercel/**)",
+      "Read(//c/Users/ahad/.claude/skills/supabase/**)",
+      "Bash(mkdir -p .claude/agents)",
+      "Bash(cp ~/.claude/agents-pool/plugins/backend-development/agents/backend-architect.md ./.claude/agents/)",
+      "Bash(cp ~/.claude/agents-pool/plugins/database-design/agents/database-architect.md ./.claude/agents/)",
+      "Bash(cp ~/.claude/agents-pool/plugins/javascript-typescript/agents/typescript-pro.md ./.claude/agents/)",
+      "Bash(cp ~/.claude/agents-pool/plugins/application-performance/agents/frontend-developer.md ./.claude/agents/)",
+      "Bash(echo \"\")",
+      "Bash(echo \"# reference repos \\(read-only, never commit\\)\")",
+      "Bash(echo \"/reference/\")",
+      "Bash(pnpm add *)",
+      "Bash(xargs head *)",
+      "Bash(pnpm tsc *)",
+      "Bash(pnpm test:run *)",
+      "Bash(npx vitest *)",
+      "Bash(npx supabase *)",
+      "Bash(claude plugin *)"
     ]
   }
 }

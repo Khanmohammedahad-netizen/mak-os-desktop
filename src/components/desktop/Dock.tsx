@@ -9,21 +9,18 @@ import {
   MotionValue,
 } from 'framer-motion';
 import {
-  Users, Handshake, FileText, CheckSquare,
-  BarChart2, Cpu, Calendar, Terminal, Settings,
+  Search, ScanSearch, Send, Kanban,
+  BarChart3, Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWindowStore } from '@/stores/windowStore';
 
 const MAIN_APPS = [
-  { id: 'crm',       title: 'CRM — MAK OS',      icon: Users },
-  { id: 'deals',     title: 'Deals — MAK OS',     icon: Handshake },
-  { id: 'notes',     title: 'Notes — MAK OS',     icon: FileText },
-  { id: 'tasks',     title: 'Tasks — MAK OS',     icon: CheckSquare },
-  { id: 'analytics', title: 'Analytics — MAK OS', icon: BarChart2 },
-  { id: 'v1',        title: 'MAK OS v1 — MAK OS', icon: Cpu },
-  { id: 'calendar',  title: 'Calendar — MAK OS',  icon: Calendar },
-  { id: 'terminal',  title: 'Terminal — MAK OS',  icon: Terminal },
+  { id: 'lead-mine',      title: 'Lead Mine — MAK OS',      icon: Search },
+  { id: 'lead-audit',     title: 'Lead Audit — MAK OS',     icon: ScanSearch },
+  { id: 'outreach',       title: 'Outreach — MAK OS',       icon: Send },
+  { id: 'pipeline',       title: 'Pipeline — MAK OS',       icon: Kanban },
+  { id: 'command-center', title: 'Command Center — MAK OS', icon: BarChart3 },
 ];
 
 const UTILITY_APPS = [

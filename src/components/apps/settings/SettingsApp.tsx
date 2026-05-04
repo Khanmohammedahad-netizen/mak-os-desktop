@@ -1,304 +1,248 @@
-"use client";
-
-import React, { useState } from 'react';
-import {
-  Settings, Link, Info, Database, ChevronLeft,
-  Check, Circle, Download,
-} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Key, FileText, Target, Clock, User, Eye, EyeOff, Save, Plus, Trash2, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/shared/Button';
-import { useCRMStore } from '@/stores/crmStore';
-import { useDealsStore } from '@/stores/dealsStore';
-import { useNotesStore } from '@/stores/notesStore';
-import { useTasksStore } from '@/stores/tasksStore';
+import { useSettingsStore, SettingsSection, OutreachTemplate } from '@/stores/settingsStore';
 
-type CategoryId = 'general' | 'integrations' | 'about' | 'data';
-
-const CATEGORIES = [
-  { id: 'general' as const, label: 'General', icon: Settings, sub: 'Wallpaper & dock' },
-  { id: 'integrations' as const, label: 'Integrations', icon: Link, sub: 'Connected services' },
-  { id: 'about' as const, label: 'About', icon: Info, sub: 'MAK OS Desktop v1.0' },
-  { id: 'data' as const, label: 'Data', icon: Database, sub: 'Export & import' },
+const SECTIONS: { id: SettingsSection; label: string; icon: React.ElementType }[] = [
+  { id: 'api_keys', label: 'API Keys', icon: Key },
+  { id: 'templates', label: 'Outreach Templates', icon: FileText },
+  { id: 'niche', label: 'Niche Configuration', icon: Target },
+  { id: 'follow_up', label: 'Follow-up Schedule', icon: Clock },
+  { id: 'identity', label: 'Sender Identity', icon: User },
 ];
 
-const WALLPAPERS = [
-  { id: 'dark', label: 'Midnight', style: { background: 'linear-gradient(135deg, #0A0A0F 0%, #111118 100%)' } },
-  { id: 'aurora', label: 'Aurora', style: { background: 'linear-gradient(135deg, #0A0A1A 0%, #0D1A0A 50%, #1A0A0D 100%)' } },
-  { id: 'gold', label: 'Ember', style: { background: 'linear-gradient(135deg, #0D0D00 0%, #1A1000 60%, #0A0800 100%)' } },
+const API_KEY_FIELDS = [
+  { key: 'apify_token', label: 'Apify API Token' },
+  { key: 'companies_house_api_key', label: 'UK Companies House API Key' },
+  { key: 'twilio_sid', label: 'Twilio Account SID' },
+  { key: 'twilio_auth', label: 'Twilio Auth Token' },
+  { key: 'twilio_whatsapp_from', label: 'Twilio WhatsApp From Number' },
+  { key: 'brevo_api_key', label: 'Brevo API Key' },
+  { key: 'resend_api_key', label: 'Resend API Key' },
+  { key: 'openrouter_api_key', label: 'OpenRouter API Key (Claude)' },
 ];
-
-const INTEGRATIONS = [
-  { name: 'Supabase', sub: 'Database backend', connected: true },
-  { name: 'MAK OS v1', sub: 'Autonomous engine', connected: true },
-  { name: 'Twilio', sub: 'Voice & SMS', connected: false },
-  { name: 'Brevo', sub: 'Email marketing', connected: false },
-];
-
-const Toggle = ({ enabled, onChange }: { enabled: boolean; onChange: () => void }) => (
-  <button
-    onClick={onChange}
-    className={cn('relative w-10 h-5 rounded-full transition-all', enabled ? 'bg-gold' : 'bg-white/10')}
-  >
-    <div className={cn('absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform', enabled && 'translate-x-5')} />
-  </button>
-);
 
 export const SettingsApp = () => {
-  const [activeCategory, setActiveCategory] = useState<CategoryId | null>(null);
-  const [wallpaper, setWallpaper] = useState('dark');
-  const [dockMag, setDockMag] = useState(true);
-  const [exporting, setExporting] = useState(false);
-  const [exportDone, setExportDone] = useState(false);
+  const { activeSection, setActiveSection, fetchApiKeys, fetchTemplates } = useSettingsStore();
 
-  const { contacts } = useCRMStore();
-  const { deals } = useDealsStore();
-  const { notes } = useNotesStore();
-  const { tasks } = useTasksStore();
-  const isMock = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
+  useEffect(() => {
+    fetchApiKeys();
+    fetchTemplates();
+  }, [fetchApiKeys, fetchTemplates]);
 
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      let data: Record<string, unknown>;
-      if (isMock) {
-        data = { contacts, deals, notes, tasks, exportedAt: new Date().toISOString() };
-      } else {
-        const [cRes, dRes, nRes, tRes] = await Promise.all([
-          fetch('/api/contacts'), fetch('/api/deals'),
-          fetch('/api/notes'), fetch('/api/tasks'),
-        ]);
-        data = {
-          contacts: await cRes.json(),
-          deals: await dRes.json(),
-          notes: await nRes.json(),
-          tasks: await tRes.json(),
-          exportedAt: new Date().toISOString(),
-        };
-      }
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `mak-os-export-${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      setExportDone(true);
-      setTimeout(() => setExportDone(false), 3000);
-    } catch (e) {
-      console.error('Export failed:', e);
-    } finally {
-      setExporting(false);
-    }
+  return (
+    <div className="flex h-full w-full bg-bg-primary text-text-primary overflow-hidden">
+      {/* Sidebar */}
+      <div className="w-64 border-r border-gold/10 bg-bg-surface/30 p-4 flex flex-col gap-2">
+        <h2 className="text-xl font-display text-gold mb-4 px-2">Settings</h2>
+        {SECTIONS.map((section) => (
+          <button
+            key={section.id}
+            onClick={() => setActiveSection(section.id)}
+            className={cn(
+              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors w-full text-left',
+              activeSection === section.id
+                ? 'bg-gold/20 text-gold'
+                : 'text-text-secondary hover:bg-white/5 hover:text-text-primary'
+            )}
+          >
+            <section.icon className="w-4 h-4" />
+            {section.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Content Area */}
+      <div className="flex-1 overflow-y-auto p-8 relative">
+        <div className="max-w-3xl mx-auto">
+          {activeSection === 'api_keys' && <ApiKeysSection />}
+          {activeSection === 'templates' && <TemplatesSection />}
+          {activeSection === 'niche' && <PlaceholderSection title="Niche Configuration" />}
+          {activeSection === 'follow_up' && <PlaceholderSection title="Follow-up Schedule" />}
+          {activeSection === 'identity' && <PlaceholderSection title="Sender Identity" />}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ApiKeysSection = () => {
+  const { apiKeys, updateApiKey } = useSettingsStore();
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-2xl font-display text-white mb-2">API Keys & Integrations</h3>
+        <p className="text-sm text-text-secondary">Configure your third-party service credentials. These are securely stored and prioritize over environment variables.</p>
+      </div>
+
+      <div className="space-y-4">
+        {API_KEY_FIELDS.map((field) => (
+          <ApiKeyField
+            key={field.key}
+            label={field.label}
+            settingKey={field.key}
+            initialValue={apiKeys[field.key] || ''}
+            onSave={(val) => updateApiKey(field.key, val)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const ApiKeyField = ({ label, settingKey, initialValue, onSave }: { label: string, settingKey: string, initialValue: string, onSave: (val: string) => void }) => {
+  const [value, setValue] = useState('');
+  const [show, setShow] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    setValue(initialValue);
+  }, [initialValue]);
+
+  const handleSave = () => {
+    onSave(value);
+    setIsEditing(false);
   };
 
-  // ── Main grid ──────────────────────────────────────────────────────────────
-  if (!activeCategory) {
-    return (
-      <div className="flex flex-col h-full bg-bg-surface/20 p-6">
-        <h2 className="text-base font-display font-semibold text-gold mb-6">System Preferences</h2>
-        <div className="grid grid-cols-2 gap-4">
-          {CATEGORIES.map((cat) => {
-            const Icon = cat.icon;
-            return (
-              <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
-                className="flex flex-col items-center justify-center gap-3 p-8 rounded-2xl border border-gold/10 bg-white/3 hover:border-gold/30 hover:bg-white/6 transition-all group"
-              >
-                <div className="w-14 h-14 rounded-2xl bg-gold/10 border border-gold/20 flex items-center justify-center group-hover:bg-gold/20 transition-colors">
-                  <Icon size={26} className="text-gold" />
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-semibold text-text-primary">{cat.label}</p>
-                  <p className="text-[11px] text-text-secondary mt-0.5">{cat.sub}</p>
-                </div>
-              </button>
-            );
-          })}
+  return (
+    <div className="bg-[#111] border border-[#222] rounded-xl p-4 flex flex-col gap-2">
+      <label className="text-sm font-medium text-text-secondary">{label}</label>
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <input
+            type={show ? 'text' : 'password'}
+            value={value}
+            onChange={(e) => {
+              setValue(e.target.value);
+              setIsEditing(true);
+            }}
+            placeholder={`Enter ${label}...`}
+            className="w-full bg-black border border-[#333] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gold/50 font-mono"
+          />
+          <button
+            onClick={() => setShow(!show)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-white"
+          >
+            {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
         </div>
+        {isEditing && (
+          <button
+            onClick={handleSave}
+            className="bg-gold text-black px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-gold/90 transition-colors"
+          >
+            <Save className="w-4 h-4" />
+            Save
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
 
-        <div className="mt-auto pt-6 text-center">
-          <p className="text-[10px] text-text-secondary/30">MAK OS Desktop v1.0</p>
+const TemplatesSection = () => {
+  const { templates, createTemplate, deleteTemplate, updateTemplate } = useSettingsStore();
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-2xl font-display text-white mb-2">Outreach Templates</h3>
+          <p className="text-sm text-text-secondary">Manage message templates for AI generation and sending.</p>
+        </div>
+        <button 
+          className="bg-gold text-black px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-gold/90 transition-colors"
+          onClick={() => {
+            // Trigger new template creation UI here in a real implementation
+            createTemplate({
+              name: 'New Template',
+              channel: 'email',
+              niche: 'general',
+              body_template: 'Hi {{contact_name}}, ...'
+            });
+          }}
+        >
+          <Plus className="w-4 h-4" />
+          Add Template
+        </button>
+      </div>
+
+      <div className="grid gap-4">
+        {templates.map((tpl) => (
+          <TemplateCard key={tpl.id} template={tpl} onDelete={() => deleteTemplate(tpl.id)} onUpdate={(updates) => updateTemplate(tpl.id, updates)} />
+        ))}
+        {templates.length === 0 && (
+          <div className="text-center py-10 text-text-secondary">No templates found.</div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const TemplateCard = ({ template, onDelete, onUpdate }: { template: OutreachTemplate, onDelete: () => void, onUpdate: (u: Partial<OutreachTemplate>) => void }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [body, setBody] = useState(template.body_template);
+
+  if (isEditing) {
+    return (
+      <div className="bg-[#111] border border-gold/30 rounded-xl p-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <span className="font-medium text-gold">{template.name}</span>
+        </div>
+        <textarea 
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          className="w-full h-32 bg-black border border-[#333] rounded-lg p-3 text-sm font-mono text-text-primary focus:outline-none focus:border-gold/50 resize-none"
+        />
+        <div className="flex justify-end gap-2 mt-2">
+          <button onClick={() => setIsEditing(false)} className="px-3 py-1.5 text-sm hover:bg-white/10 rounded-lg">Cancel</button>
+          <button 
+            onClick={() => { onUpdate({ body_template: body }); setIsEditing(false); }}
+            className="bg-gold text-black px-3 py-1.5 text-sm rounded-lg font-medium"
+          >
+            Save
+          </button>
         </div>
       </div>
     );
   }
 
-  // ── Detail views ───────────────────────────────────────────────────────────
-  const BackBtn = () => (
-    <button
-      onClick={() => setActiveCategory(null)}
-      className="flex items-center gap-2 text-[12px] text-text-secondary hover:text-gold transition-colors mb-6"
-    >
-      <ChevronLeft size={14} />
-      Preferences
-    </button>
-  );
-
   return (
-    <div className="flex flex-col h-full bg-bg-surface/20 overflow-auto p-6">
-      <BackBtn />
-
-      {activeCategory === 'general' && (
-        <div className="max-w-lg space-y-6">
-          <h2 className="text-xl font-display font-semibold text-gold">General</h2>
-
-          <div className="space-y-3">
-            <p className="text-sm font-semibold text-text-primary">Wallpaper</p>
-            <div className="flex gap-3">
-              {WALLPAPERS.map((wp) => (
-                <button
-                  key={wp.id}
-                  onClick={() => setWallpaper(wp.id)}
-                  className={cn(
-                    'relative w-24 h-16 rounded-xl border-2 overflow-hidden transition-all',
-                    wallpaper === wp.id ? 'border-gold' : 'border-gold/10 hover:border-gold/30'
-                  )}
-                  style={wp.style}
-                >
-                  {wallpaper === wp.id && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                      <Check size={16} className="text-gold" />
-                    </div>
-                  )}
-                  <span className="absolute bottom-1 left-0 right-0 text-center text-[9px] text-white/60">{wp.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="glass border border-gold/10 rounded-2xl p-5 divide-y divide-gold/5">
-            <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-              <div>
-                <p className="text-sm font-medium text-text-primary">Dock Magnification</p>
-                <p className="text-xs text-text-secondary mt-0.5">Scale icons on hover</p>
-              </div>
-              <Toggle enabled={dockMag} onChange={() => setDockMag(!dockMag)} />
-            </div>
-            <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-              <div>
-                <p className="text-sm font-medium text-text-primary">Window Animations</p>
-                <p className="text-xs text-text-secondary mt-0.5">Framer Motion transitions</p>
-              </div>
-              <Toggle enabled={true} onChange={() => {}} />
-            </div>
-          </div>
+    <div className="bg-[#111] border border-[#222] rounded-xl p-4 flex flex-col gap-3 group">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="font-medium text-white">{template.name}</span>
+          <span className={cn(
+            "text-xs px-2 py-0.5 rounded-full font-medium",
+            template.channel === 'whatsapp' ? 'bg-green-500/20 text-green-400' : 
+            template.channel === 'email' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'
+          )}>
+            {template.channel}
+          </span>
+          <span className="text-xs text-text-secondary bg-white/5 px-2 py-0.5 rounded-full">{template.niche}</span>
         </div>
-      )}
-
-      {activeCategory === 'integrations' && (
-        <div className="max-w-lg space-y-6">
-          <h2 className="text-xl font-display font-semibold text-gold">Integrations</h2>
-
-          <div className="space-y-3">
-            {INTEGRATIONS.map((intg) => (
-              <div
-                key={intg.name}
-                className="flex items-center justify-between p-4 glass border border-gold/10 rounded-xl"
-              >
-                <div>
-                  <p className="text-sm font-semibold text-text-primary">{intg.name}</p>
-                  <p className="text-xs text-text-secondary mt-0.5">{intg.sub}</p>
-                </div>
-                {intg.connected ? (
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 border border-green-500/20">
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                    <span className="text-[10px] font-bold text-green-400">Connected</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-gold/10">
-                    <Circle size={8} className="text-text-secondary" />
-                    <span className="text-[10px] text-text-secondary">Not configured</span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <p className="text-[11px] text-text-secondary/50">
-            Configure Twilio and Brevo via environment variables in your deployment settings.
-          </p>
+        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button onClick={() => setIsEditing(true)} className="text-xs text-text-secondary hover:text-white px-2 py-1">Edit</button>
+          <button onClick={onDelete} className="text-xs text-red-400 hover:text-red-300 px-2 py-1 flex items-center"><Trash2 className="w-3 h-3 mr-1" /> Delete</button>
         </div>
-      )}
-
-      {activeCategory === 'about' && (
-        <div className="max-w-lg space-y-6">
-          <h2 className="text-xl font-display font-semibold text-gold">About MAK OS</h2>
-
-          <div className="flex items-center gap-6 p-6 glass border border-gold/20 rounded-2xl">
-            <div className="w-20 h-20 rounded-2xl bg-gold/10 border border-gold/30 flex items-center justify-center flex-shrink-0">
-              <span className="text-3xl font-display font-bold text-gold">M</span>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-text-primary">MAK OS Desktop</h3>
-              <p className="text-text-secondary text-sm">Version 1.0.0</p>
-              <div className="flex flex-wrap gap-2 mt-3">
-                {['Next.js 16', 'TypeScript', 'Supabase', 'Recharts'].map((t) => (
-                  <span key={t} className="text-[10px] font-bold text-gold/70 bg-gold/10 border border-gold/20 px-2 py-0.5 rounded-full">
-                    {t}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="glass border border-gold/10 rounded-2xl p-5 divide-y divide-gold/5">
-            {[
-              ['Built by', 'MAK Software Solutions'],
-              ['Founder', 'Mohammed Ahad Khan'],
-              ['Email', 'Khanmohammedahad@yahoo.com'],
-              ['System', 'MAK OS Desktop v1.0'],
-              ['Build date', new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })],
-            ].map(([label, value]) => (
-              <div key={label} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-                <span className="text-sm text-text-secondary">{label}</span>
-                <span className="text-sm font-medium text-text-primary">{value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {activeCategory === 'data' && (
-        <div className="max-w-lg space-y-6">
-          <h2 className="text-xl font-display font-semibold text-gold">Data</h2>
-
-          <div className="glass border border-gold/10 rounded-2xl p-5 space-y-4">
-            <div>
-              <p className="text-sm font-semibold text-text-primary">Export All Data</p>
-              <p className="text-xs text-text-secondary mt-1">Download all contacts, deals, notes, and tasks as a JSON file.</p>
-            </div>
-            <Button
-              onClick={handleExport}
-              disabled={exporting}
-              className="space-x-2"
-            >
-              {exportDone ? (
-                <>
-                  <Check size={14} />
-                  <span>Exported!</span>
-                </>
-              ) : (
-                <>
-                  <Download size={14} />
-                  <span>{exporting ? 'Exporting…' : 'Export JSON'}</span>
-                </>
-              )}
-            </Button>
-          </div>
-
-          <div className="glass border border-gold/10 rounded-2xl p-5 space-y-4 opacity-50">
-            <div>
-              <p className="text-sm font-semibold text-text-primary">Import Data</p>
-              <p className="text-xs text-text-secondary mt-1">Import from a MAK OS JSON export file.</p>
-            </div>
-            <Button variant="secondary" disabled className="space-x-2">
-              <span>Import JSON</span>
-              <span className="text-[10px] text-text-secondary ml-2">(coming soon)</span>
-            </Button>
-          </div>
-        </div>
-      )}
+      </div>
+      <div className="bg-black/50 p-3 rounded-lg text-sm text-text-secondary font-mono line-clamp-2">
+        {template.body_template}
+      </div>
+      <div className="flex items-center gap-4 text-xs text-text-secondary">
+        <span>Used: {template.times_used} times</span>
+        <span>Replies: {template.reply_count}</span>
+        <span>Rate: {template.reply_rate}%</span>
+      </div>
     </div>
   );
 };
+
+const PlaceholderSection = ({ title }: { title: string }) => (
+  <div className="h-full flex flex-col items-center justify-center text-center p-10 opacity-50">
+    <Settings className="w-12 h-12 mb-4 text-gold/50" />
+    <h3 className="text-xl font-display text-white mb-2">{title}</h3>
+    <p className="text-sm text-text-secondary max-w-md">This section is available in the full version of MAK OS Desktop v2.</p>
+  </div>
+);
